@@ -37,6 +37,6 @@ public final class EmiProgresion implements ModInitializer {
             StoryService.tick(server);
         });
 
-        LOGGER.info("EmiProgresion 0.1.0-alpha.5.2 enabled: RCT-ready story setup and corrected Brock anchor.");
+        LOGGER.info("EmiProgresion 0.1.0-alpha.5.3 enabled: cleans legacy Brock entities and provides a direct RCT fallback.");
     }
 }

@@ -9,6 +9,12 @@ Target stack:
 - Cobblemon 1.7.3
 - Cobbleverse datapacks v31 / RCT v20
 
+## 0.1.0-alpha.5.3 — legacy Brock cleanup
+
+Alpha.5.3 removes persistent Brock entities left at the obsolete prototype
+anchor before placing the gym leader. It also uses a direct RCT entity summon as
+a fallback when RCT's `summon_persistent` command produces no entity.
+
 ## 0.1.0-alpha.5.2 — RCT startup and Brock anchor hotfix
 
 Alpha.5.2 waits for RCT's trainer registry before creating the story NPCs. It

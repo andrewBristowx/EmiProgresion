@@ -208,6 +208,10 @@ public final class StoryService {
         removeOrphanAt(level, "bug_catcher_rick_0066", -61, 91, -704);
         removeOrphanAt(level, "bug_catcher_doug_0067", -14, 102, -889);
         removeOrphanAt(level, "bug_catcher_sammy_0068", 37, 112, -1080);
+        // Alpha.5/5.1 left persistent Brock entities at this obsolete prototype
+        // anchor. RCT keeps their chunks loaded, so remove them before registering
+        // the real gym leader at the Wild Kanto Pewter Gym.
+        removeOrphanAt(level, "kanto_brock", 0, 64, 1250);
         removeOrphanAt(level, "kanto_brock", config.brockX, config.brockY, config.brockZ);
         int expected = 8;
         int spawned = 0;
@@ -437,26 +441,27 @@ public final class StoryService {
                 .withPosition(new Vec3(x + 0.5D, y, z + 0.5D)).withSuppressedOutput().withPermission(4);
         AABB search = new AABB(x - 3, y - 3, z - 3, x + 4, y + 5, z + 4);
         HashSet<UUID> before = new HashSet<>();
-        for (Entity entity : level.getEntities((Entity) null, search,
-                candidate -> trainerId.equals(trainerId(candidate)))) {
+        for (Entity entity : level.getEntities((Entity) null, search, candidate -> true)) {
             before.add(entity.getUUID());
         }
         String command = storyTrainerCommand(trainerId, x, y, z);
-        try {
-            level.getServer().getCommands().getDispatcher().execute(command, source);
-        } catch (Exception exception) {
-            EmiProgresion.LOGGER.error("RCT rejected story trainer command '{}'", command, exception);
-            return false;
-        }
-
-        Entity created = level.getEntities((Entity) null, search,
-                        candidate -> trainerId.equals(trainerId(candidate)) && !before.contains(candidate.getUUID()))
-                .stream().min(java.util.Comparator.comparingDouble(candidate -> candidate.distanceToSqr(x, y, z)))
-                .orElse(null);
+        executeStoryCommand(level, source, command);
+        Entity created = findNewTrainer(level, search, before, trainerId, x, y, z);
         if (created == null) {
-            EmiProgresion.LOGGER.warn("RCT command completed but no new story trainer {} was found at {} {} {}",
+            EmiProgresion.LOGGER.warn("RCT persistent command created no story trainer {} at {} {} {}; trying direct RCT entity summon",
                     trainerId, x, y, z);
-            return false;
+            String fallback = storyTrainerFallbackCommand(trainerId, x, y, z);
+            executeStoryCommand(level, source, fallback);
+            created = findNewTrainer(level, search, before, trainerId, x, y, z);
+            if (created == null) {
+                List<String> nearbyNew = level.getEntities((Entity) null, search,
+                                candidate -> !before.contains(candidate.getUUID()))
+                        .stream().map(candidate -> candidate.getClass().getName() + ":" + trainerId(candidate))
+                        .toList();
+                EmiProgresion.LOGGER.warn("Neither RCT summon path created story trainer {} at {} {} {}. New nearby entities: {}",
+                        trainerId, x, y, z, nearbyNew);
+                return false;
+            }
         }
 
         created.addTag(tag);
@@ -477,6 +482,28 @@ public final class StoryService {
 
     static String storyTrainerCommand(String trainerId, int x, int y, int z) {
         return "rctmod trainer summon_persistent " + trainerId + " " + x + " " + y + " " + z;
+    }
+
+    static String storyTrainerFallbackCommand(String trainerId, int x, int y, int z) {
+        return "summon rctmod:trainer " + x + " " + y + " " + z
+                + " {TrainerId:\"" + trainerId + "\",Persistent:1b}";
+    }
+
+    private static void executeStoryCommand(ServerLevel level, CommandSourceStack source, String command) {
+        try {
+            level.getServer().getCommands().getDispatcher().execute(command, source);
+        } catch (Exception exception) {
+            EmiProgresion.LOGGER.error("Story trainer command failed '{}'", command, exception);
+        }
+    }
+
+    private static Entity findNewTrainer(ServerLevel level, AABB search, Set<UUID> before,
+                                         String expectedTrainerId, int x, int y, int z) {
+        return level.getEntities((Entity) null, search,
+                        candidate -> expectedTrainerId.equals(trainerId(candidate))
+                                && !before.contains(candidate.getUUID()))
+                .stream().min(java.util.Comparator.comparingDouble(candidate -> candidate.distanceToSqr(x, y, z)))
+                .orElse(null);
     }
 
     private static boolean rctTrainerAvailable(String trainerId) {

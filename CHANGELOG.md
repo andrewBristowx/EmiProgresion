@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-alpha.5.3
+
+- Removes and unregisters persistent `kanto_brock` entities left at the obsolete
+  `0,64,1250` prototype anchor before creating the real gym leader.
+- Falls back to directly summoning an RCT trainer entity with `TrainerId` and
+  RCT persistence when `summon_persistent` completes without producing an entity.
+- Logs any unexpected new entity type and trainer ID if both RCT summon paths fail.
+
 ## 0.1.0-alpha.5.2
 
 - Delays automatic story NPC creation until RCT confirms that `kanto_brock` is
