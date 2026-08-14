@@ -12,7 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class EmiProgresionConfig {
-    private static final int CURRENT_CONFIG_VERSION = 3;
+    private static final int CURRENT_CONFIG_VERSION = 4;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("emiprogresion.json");
     private static EmiProgresionConfig INSTANCE = new EmiProgresionConfig();
@@ -47,6 +47,29 @@ public final class EmiProgresionConfig {
     public boolean autoSetKantoSeriesOnEnter = false;
     public boolean preventBuildingInKanto = false;
     public boolean requireBrockBeforeLeavingPrototype = false;
+
+    /** Alpha.4 story anchors for Wild Kanto 1-00-02. They can be corrected in-game with setanchor. */
+    public boolean storyEnabled = true;
+    public boolean storyGuideEnabled = true;
+    public boolean storyNpcSetupComplete = false;
+    public int oakX = 154;
+    public int oakY = 78;
+    public int oakZ = 150;
+    public int palletGuideX = 105;
+    public int palletGuideY = 74;
+    public int palletGuideZ = 137;
+    public int viridianCourierX = -28;
+    public int viridianCourierY = 96;
+    public int viridianCourierZ = -309;
+    public int giovanniGateX = 92;
+    public int giovanniGateY = 99;
+    public int giovanniGateZ = -367;
+    public int brockX = 22;
+    public int brockY = 127;
+    public int brockZ = -1294;
+    public int routeThreeGateX = 207;
+    public int routeThreeGateY = 126;
+    public int routeThreeGateZ = -1318;
 
     public static EmiProgresionConfig get() {
         return INSTANCE;

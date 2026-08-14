@@ -2,7 +2,9 @@ package com.andrewbristowx.emiprogresion;
 
 import com.andrewbristowx.emiprogresion.command.EmiProgresionCommand;
 import com.andrewbristowx.emiprogresion.config.EmiProgresionConfig;
+import com.andrewbristowx.emiprogresion.network.StoryNetworking;
 import com.andrewbristowx.emiprogresion.region.AdventureRegionService;
+import com.andrewbristowx.emiprogresion.story.StoryService;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -17,13 +19,22 @@ public final class EmiProgresion implements ModInitializer {
     @Override
     public void onInitialize() {
         EmiProgresionConfig.load();
+        StoryNetworking.initialize();
+        StoryService.initializeEvents();
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 EmiProgresionCommand.register(dispatcher)
         );
-        ServerLifecycleEvents.SERVER_STARTED.register(AdventureRegionService::onServerStarted);
-        ServerTickEvents.END_SERVER_TICK.register(AdventureRegionService::tick);
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            AdventureRegionService.onServerStarted(server);
+            StoryService.onServerStarted(server);
+        });
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> StoryService.onServerStopping());
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            AdventureRegionService.tick(server);
+            StoryService.tick(server);
+        });
 
-        LOGGER.info("EmiProgresion 0.1.0-alpha.3 enabled: cleaned Wild Kanto map-test mode.");
+        LOGGER.info("EmiProgresion 0.1.0-alpha.4 enabled: Kanto story through Brock.");
     }
 }

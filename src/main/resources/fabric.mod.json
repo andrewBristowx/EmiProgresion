@@ -3,17 +3,20 @@
   "id": "emiprogresion",
   "version": "${version}",
   "name": "EmiProgresion",
-  "description": "Server-side Kanto progression and region-management mod for Emipokemon.",
+  "description": "Kanto story progression, dialogue and region-management mod for Emipokemon.",
   "authors": ["andrewBristowx"],
-  "environment": "server",
+  "environment": "*",
   "entrypoints": {
-    "main": ["com.andrewbristowx.emiprogresion.EmiProgresion"]
+    "main": ["com.andrewbristowx.emiprogresion.EmiProgresion"],
+    "client": ["com.andrewbristowx.emiprogresion.client.EmiProgresionClient"]
   },
   "depends": {
     "fabricloader": ">=0.17.2",
     "minecraft": "1.21.1",
     "java": ">=21",
     "fabric-api": "*",
-    "cobblemon": ">=1.7.3"
+    "cobblemon": ">=1.7.3",
+    "rctapi": ">=0.15.2-beta",
+    "rctmod": ">=0.18.1-beta"
   }
 }

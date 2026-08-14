@@ -2,6 +2,8 @@ package com.andrewbristowx.emiprogresion.command;
 
 import com.andrewbristowx.emiprogresion.config.EmiProgresionConfig;
 import com.andrewbristowx.emiprogresion.region.AdventureRegionService;
+import com.andrewbristowx.emiprogresion.story.StoryService;
+import net.fabricmc.loader.api.FabricLoader;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -25,6 +27,26 @@ public final class EmiProgresionCommand {
                         .then(Commands.literal("mapcheck")
                                 .requires(s -> s.hasPermission(2))
                                 .executes(ctx -> validate(ctx.getSource()))))
+                .then(Commands.literal("story")
+                        .then(Commands.literal("status").executes(ctx -> storyStatus(ctx.getSource())))
+                        .then(Commands.literal("objective").executes(ctx -> storyObjective(ctx.getSource())))
+                        .then(Commands.literal("setup")
+                                .requires(s -> s.hasPermission(2))
+                                .executes(ctx -> storySetup(ctx.getSource())))
+                        .then(Commands.literal("reset")
+                                .requires(s -> s.hasPermission(2))
+                                .executes(ctx -> storyReset(ctx.getSource())))
+                        .then(Commands.literal("setanchor")
+                                .requires(s -> s.hasPermission(2))
+                                .then(Commands.literal("oak").executes(ctx -> setAnchor(ctx.getSource(), "oak")))
+                                .then(Commands.literal("pallet_guide").executes(ctx -> setAnchor(ctx.getSource(), "pallet_guide")))
+                                .then(Commands.literal("viridian_courier").executes(ctx -> setAnchor(ctx.getSource(), "viridian_courier")))
+                                .then(Commands.literal("giovanni_gate").executes(ctx -> setAnchor(ctx.getSource(), "giovanni_gate")))
+                                .then(Commands.literal("brock").executes(ctx -> setAnchor(ctx.getSource(), "brock")))
+                                .then(Commands.literal("route3_gate").executes(ctx -> setAnchor(ctx.getSource(), "route3_gate")))))
+                .then(Commands.literal("lootcheck")
+                        .requires(s -> s.hasPermission(2))
+                        .executes(ctx -> lootCheck(ctx.getSource())))
                 .then(Commands.literal("setspawn")
                         .requires(s -> s.hasPermission(2))
                         .executes(ctx -> setSpawn(ctx.getSource())))
@@ -48,6 +70,8 @@ public final class EmiProgresionCommand {
                 .withStyle(ChatFormatting.GREEN), false);
         source.sendSuccess(() -> Component.literal("Gimnasios naturales: permitidos en el mundo normal, fuera de la campaña oficial.")
                 .withStyle(ChatFormatting.YELLOW), false);
+        source.sendSuccess(() -> Component.literal("Historia oficial: Pueblo Paleta → Ciudad Verde → Bosque Verde → Brock.")
+                .withStyle(ChatFormatting.LIGHT_PURPLE), false);
         return 1;
     }
 
@@ -107,7 +131,7 @@ public final class EmiProgresionCommand {
                 new net.minecraft.core.BlockPos(config.kantoSpawnX, config.kantoSpawnY, config.kantoSpawnZ)
         );
 
-        source.sendSuccess(() -> Component.literal("Validación Wild Kanto alpha.3:")
+        source.sendSuccess(() -> Component.literal("Validación Wild Kanto alpha.4:")
                 .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), false);
         validationLine(source, dimensionExists, "Dimensión Kanto: " + config.kantoWorld);
         validationLine(source, signatureFound, "Firma del mapa Wild Kanto 1-00-02");
@@ -116,7 +140,9 @@ public final class EmiProgresionCommand {
         validationLine(source, spawnInsideGeneratedMap, "Spawn dentro del rectángulo completamente generado");
         source.sendSuccess(() -> Component.literal("✓ No se bloquean los gimnasios naturales del mundo normal.")
                 .withStyle(ChatFormatting.GREEN), false);
-        source.sendSuccess(() -> Component.literal("ℹ Esta alpha prueba limpieza, terreno y acceso; las recompensas oficiales aún no están activadas.")
+        validationLine(source, FabricLoader.getInstance().isModLoaded("rctmod"), "Radical Cobblemon Trainers (RCT)");
+        validationLine(source, config.storyNpcSetupComplete, "NPCs de historia preparados con /emiprogresion story setup");
+        source.sendSuccess(() -> Component.literal("ℹ Lootr no se modifica si el mod no está instalado; usa /emiprogresion lootcheck.")
                 .withStyle(ChatFormatting.YELLOW), false);
 
         return dimensionExists && signatureFound && safeSpawn && spawnInsideGeneratedMap ? 1 : 0;
@@ -131,6 +157,76 @@ public final class EmiProgresionCommand {
         EmiProgresionConfig.reload();
         AdventureRegionService.applyKantoBorder(source.getServer());
         source.sendSuccess(() -> Component.literal("EmiProgresion recargado.").withStyle(ChatFormatting.GREEN), false);
+        return 1;
+    }
+
+    private static int storyStatus(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        var progress = StoryService.progress(player);
+        source.sendSuccess(() -> Component.literal("Historia Kanto: " + progress.stage
+                        + (progress.starter.isBlank() ? "" : " • Inicial: " + progress.starter))
+                .withStyle(ChatFormatting.AQUA), false);
+        return 1;
+    }
+
+    private static int storyObjective(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        StoryService.openObjective(source.getPlayerOrException());
+        return 1;
+    }
+
+    private static int storySetup(CommandSourceStack source) {
+        StoryService.SetupResult result = StoryService.setupNpcs(source.getServer());
+        source.sendSuccess(() -> Component.literal("NPCs de historia: " + result.spawned() + "/" + result.expected()
+                        + " • " + result.message())
+                .withStyle(result.spawned() == result.expected() ? ChatFormatting.GREEN : ChatFormatting.RED), true);
+        return result.spawned() == result.expected() ? 1 : 0;
+    }
+
+    private static int storyReset(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        StoryService.reset(player);
+        source.sendSuccess(() -> Component.literal("Progreso de historia reiniciado para " + player.getScoreboardName() + ".")
+                .withStyle(ChatFormatting.YELLOW), true);
+        return 1;
+    }
+
+    private static int setAnchor(CommandSourceStack source, String anchor) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        if (!AdventureRegionService.isKanto(player.serverLevel())) {
+            source.sendFailure(Component.literal("Debes estar dentro de emiprogresion:kanto."));
+            return 0;
+        }
+        EmiProgresionConfig config = EmiProgresionConfig.get();
+        int x = player.getBlockX();
+        int y = player.getBlockY();
+        int z = player.getBlockZ();
+        switch (anchor) {
+            case "oak" -> { config.oakX = x; config.oakY = y; config.oakZ = z; }
+            case "pallet_guide" -> { config.palletGuideX = x; config.palletGuideY = y; config.palletGuideZ = z; }
+            case "viridian_courier" -> { config.viridianCourierX = x; config.viridianCourierY = y; config.viridianCourierZ = z; }
+            case "giovanni_gate" -> { config.giovanniGateX = x; config.giovanniGateY = y; config.giovanniGateZ = z; }
+            case "brock" -> { config.brockX = x; config.brockY = y; config.brockZ = z; }
+            case "route3_gate" -> { config.routeThreeGateX = x; config.routeThreeGateY = y; config.routeThreeGateZ = z; }
+            default -> { return 0; }
+        }
+        config.storyNpcSetupComplete = false;
+        EmiProgresionConfig.save();
+        source.sendSuccess(() -> Component.literal("Anclaje " + anchor + " guardado en " + x + " " + y + " " + z
+                        + ". Ejecuta /emiprogresion story setup.")
+                .withStyle(ChatFormatting.GREEN), true);
+        return 1;
+    }
+
+    private static int lootCheck(CommandSourceStack source) {
+        boolean lootr = FabricLoader.getInstance().isModLoaded("lootr");
+        if (!lootr) {
+            source.sendFailure(Component.literal("Lootr no está instalado en este perfil. No se convirtió ningún cofre para evitar perder sus objetos."));
+            source.sendSuccess(() -> Component.literal("Pasture Loot no es Lootr: son mods distintos. Instala una versión Fabric 1.21.1 compatible antes de preparar cofres personales.")
+                    .withStyle(ChatFormatting.YELLOW), false);
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Lootr detectado. La conversión seguirá desactivada hasta validar en una copia que conserva exactamente el contenido del mapa.")
+                .withStyle(ChatFormatting.GREEN), false);
         return 1;
     }
 }

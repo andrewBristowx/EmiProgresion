@@ -47,12 +47,14 @@ public final class AdventureRegionService {
 
         for (ServerPlayer player : kanto.players()) {
             if (INTRO_SHOWN.add(player.getUUID())) {
-                player.sendSystemMessage(Component.literal("✦ PRUEBA DEL MAPA DE KANTO ✦")
+                player.sendSystemMessage(Component.literal("✦ HISTORIA DE KANTO • PRIMERA VERSIÓN ✦")
                         .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
-                player.sendSystemMessage(Component.literal("Explora y reporta cortes de terreno, edificios incompletos o zonas inaccesibles.")
+                player.sendSystemMessage(Component.literal("Tu aventura comienza con el Profesor Oak en Pueblo Paleta y termina, por ahora, al vencer a Brock.")
                         .withStyle(ChatFormatting.GRAY));
                 player.sendSystemMessage(Component.literal("Los gimnasios del mundo normal son opcionales; la campaña oficial se validará únicamente aquí.")
                         .withStyle(ChatFormatting.YELLOW));
+                player.sendSystemMessage(Component.literal("Usa /emiprogresion story objective si necesitas recordar tu destino.")
+                        .withStyle(ChatFormatting.LIGHT_PURPLE));
             }
         }
     }
