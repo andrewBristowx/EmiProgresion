@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "emiprogresion",
+  "version": "${version}",
+  "name": "EmiProgresion",
+  "description": "Kanto story progression, dialogue and region-management mod for Emipokemon.",
+  "authors": ["andrewBristowx"],
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.andrewbristowx.emiprogresion.EmiProgresion"],
+    "client": ["com.andrewbristowx.emiprogresion.client.EmiProgresionClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.17.2",
+    "minecraft": "1.21.1",
+    "java": ">=21",
+    "fabric-api": "*",
+    "cobblemon": ">=1.7.3",
+    "rctapi": ">=0.15.2-beta",
+    "rctmod": ">=0.18.1-beta"
+  }
+}

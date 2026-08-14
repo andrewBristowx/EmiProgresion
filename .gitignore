@@ -1,0 +1,9 @@
+.gradle/
+.gradle-user-home*/
+build/
+out/
+run/
+.idea/
+*.iml
+__pycache__/
+*.pyc
