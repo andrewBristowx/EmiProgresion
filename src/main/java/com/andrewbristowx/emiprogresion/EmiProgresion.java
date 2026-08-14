@@ -1,9 +1,12 @@
 package com.andrewbristowx.emiprogresion;
 
-import com.andrewbristowx.emiprogresion.command.ProgressionCommand;
-import com.andrewbristowx.emiprogresion.config.ProgressionConfig;
+import com.andrewbristowx.emiprogresion.command.EmiProgresionCommand;
+import com.andrewbristowx.emiprogresion.config.EmiProgresionConfig;
+import com.andrewbristowx.emiprogresion.region.AdventureRegionService;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,10 +16,14 @@ public final class EmiProgresion implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        ProgressionConfig.load();
+        EmiProgresionConfig.load();
+
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
-                ProgressionCommand.register(dispatcher)
+                EmiProgresionCommand.register(dispatcher)
         );
-        LOGGER.info("EmiProgresion 0.1.0-alpha.1 enabled. Kanto planning core is active; no world generation or border changes are automatic yet.");
+        ServerLifecycleEvents.SERVER_STARTED.register(AdventureRegionService::onServerStarted);
+        ServerTickEvents.END_SERVER_TICK.register(AdventureRegionService::tick);
+
+        LOGGER.info("EmiProgresion 0.1.0-alpha.2 enabled: separate Kanto adventure prototype through Brock.");
     }
 }

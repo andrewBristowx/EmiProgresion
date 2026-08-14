@@ -3,13 +3,11 @@
   "id": "emiprogresion",
   "version": "${version}",
   "name": "EmiProgresion",
-  "description": "Server-side regional progression and world-planning core for Emipokemon.",
+  "description": "Server-side Kanto progression and region-management mod for Emipokemon.",
   "authors": ["andrewBristowx"],
   "environment": "server",
   "entrypoints": {
-    "main": [
-      "com.andrewbristowx.emiprogresion.EmiProgresion"
-    ]
+    "main": ["com.andrewbristowx.emiprogresion.EmiProgresion"]
   },
   "depends": {
     "fabricloader": ">=0.17.2",

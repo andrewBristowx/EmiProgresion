@@ -8,32 +8,36 @@ Target stack:
 - Java 21
 - Cobblemon 1.7.3
 
-## Alpha 1 — Kanto planning core
+## 0.1.0-alpha.2 — Kanto prototype through Brock
 
-The first development version establishes the safe layout/configuration layer before any world is pregenerated.
+The main survival/community world and the Pokémon adventure are intentionally separated.
 
-Default Kanto plan:
-- Kanto radius: **4000 blocks** (8000-block diameter).
-- Custom spawn/town protected core: **300 blocks**.
-- Nearby housing/expansion zone: from the edge of the protected core out to **1000 blocks**.
-- Main Kanto routes are intended to begin around/outside the 1000-block housing radius.
-- Johto, Hoenn and Sinnoh start disabled.
+### Main world
+- Custom spawn core: 300-block protected planning radius by default.
+- Housing/community ring: up to 1000 blocks by default.
+- Intended to remain free of Cobbleverse random gyms once the exact structure-set integration is finalized.
 
-The 1000 blocks are **not** intended to be fully protected. Only the central spawn/town core is reserved; the outer ring exists so players can build homes near spawn without crowding the custom town.
+### Kanto world
+- Bundled custom dimension id: `emiprogresion:kanto` using Overworld-style terrain generation.
+- 8000-block world border by default.
+- Prototype route: initial town → Route 1 → Brock.
+- Brock placement is configurable and deliberately waits for the exact structure id from the server's `COBBLEVERSE-DP-v31.zip` instead of guessing.
 
-This alpha deliberately does **not** generate terrain, place gyms, change the vanilla world border, or modify Cobbleverse structures. Those operations will only be enabled after Kanto's layout has been validated.
-
-Commands:
+### Commands
 ```text
 /emiprogresion status
 /emiprogresion layout
+/emiprogresion kanto enter
+/emiprogresion kanto leave
+/emiprogresion kanto brock tp
+/emiprogresion kanto brock place
 /emiprogresion setspawn
 /emiprogresion validate
 /emiprogresion reload
 ```
 
-`setspawn`, `validate`, and `reload` require permission level 2.
+### Important prototype limitation
 
-Configuration is generated at `config/emiprogresion.json`.
+Alpha.2 creates and manages the separate Kanto dimension and route coordinates, but it does **not** yet suppress Cobbleverse gym structures at worldgen level. To do that safely we need the exact Kanto gym structure/structure-set identifiers from the server's `COBBLEVERSE-DP-v31.zip`. Once those are confirmed, the next revision will override/exclude them from the normal world and keep only the deliberately placed campaign gyms in Kanto.
 
-Development remains isolated on `agent/*` branches until the build is validated in-game.
+Development stays on isolated `agent/*` branches. `main` remains the stable baseline.
