@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.0-alpha.5.4
+
+- Removes the abandoned RCT trainer entities at `0,64,1250` by entity type instead
+  of trainer ID. RCT changes their invalid early-load ID to `default`, which made
+  the alpha.5.3 cleanup miss them while they still reserved persistent Brock.
+- Explicitly unregisters each abandoned entity from RCT's persistent trainer
+  store before discarding it.
+- Creates Brock temporarily at the legacy anchor where RCT previously accepted
+  him, moves him immediately to the Pewter Gym, and only then enables persistence
+  so RCT records the correct gym chunk.
+- Forces one corrected story NPC rebuild after upgrading from alpha.5.3.
+
 ## 0.1.0-alpha.5.3
 
 - Removes and unregisters persistent `kanto_brock` entities left at the obsolete

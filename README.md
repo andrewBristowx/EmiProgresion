@@ -9,6 +9,14 @@ Target stack:
 - Cobblemon 1.7.3
 - Cobbleverse datapacks v31 / RCT v20
 
+## 0.1.0-alpha.5.4 — invalid legacy Brock cleanup
+
+Alpha.5.4 removes only RCT trainer entities at the abandoned `0,64,1250`
+prototype anchor, even when RCT has replaced their invalid early-load trainer ID
+with `default`, and unregisters their saved RCT tickets. Brock is then staged at
+that known-compatible anchor, moved immediately into the Wild Kanto Pewter Gym,
+and made persistent only after reaching the correct gym chunk.
+
 ## 0.1.0-alpha.5.3 — legacy Brock cleanup
 
 Alpha.5.3 removes persistent Brock entities left at the obsolete prototype

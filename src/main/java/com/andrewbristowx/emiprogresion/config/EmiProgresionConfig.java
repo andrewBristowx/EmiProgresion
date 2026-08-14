@@ -13,7 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class EmiProgresionConfig {
-    private static final int CURRENT_CONFIG_VERSION = 6;
+    private static final int CURRENT_CONFIG_VERSION = 7;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("emiprogresion.json");
     private static EmiProgresionConfig INSTANCE = new EmiProgresionConfig();
@@ -140,6 +140,12 @@ public final class EmiProgresionConfig {
                 }
                 // Alpha.5.1 could run before RCT finished loading its trainer data.
                 // Force one clean, delayed rebuild after upgrading.
+                storyNpcSetupComplete = false;
+            }
+            if (configVersion < 7) {
+                // Alpha.5.3 could not identify invalid legacy Brock entities after
+                // RCT replaced their unloaded trainer ID with its default value.
+                // Force the corrected entity-type cleanup once after upgrading.
                 storyNpcSetupComplete = false;
             }
             configVersion = CURRENT_CONFIG_VERSION;

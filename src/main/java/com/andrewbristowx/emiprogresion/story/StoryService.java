@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -209,9 +210,10 @@ public final class StoryService {
         removeOrphanAt(level, "bug_catcher_doug_0067", -14, 102, -889);
         removeOrphanAt(level, "bug_catcher_sammy_0068", 37, 112, -1080);
         // Alpha.5/5.1 left persistent Brock entities at this obsolete prototype
-        // anchor. RCT keeps their chunks loaded, so remove them before registering
-        // the real gym leader at the Wild Kanto Pewter Gym.
-        removeOrphanAt(level, "kanto_brock", 0, 64, 1250);
+        // anchor. They load before RCT's datapack registry and lose their trainer
+        // ID, so matching by kanto_brock cannot find them later. This anchor was
+        // never part of Wild Kanto; remove only RCT trainer entities found there.
+        removeLegacyRctTrainersAt(level, 0, 64, 1250);
         removeOrphanAt(level, "kanto_brock", config.brockX, config.brockY, config.brockZ);
         int expected = 8;
         int spawned = 0;
@@ -223,7 +225,7 @@ public final class StoryService {
         spawned += spawnAndRecord(level, "bug_catcher_rick_0066", -61, 91, -704, ROUTE_TAG, 0f, failed);
         spawned += spawnAndRecord(level, "bug_catcher_doug_0067", -14, 102, -889, ROUTE_TAG, 180f, failed);
         spawned += spawnAndRecord(level, "bug_catcher_sammy_0068", 37, 112, -1080, ROUTE_TAG, 0f, failed);
-        spawned += spawnAndRecord(level, "kanto_brock", config.brockX, config.brockY, config.brockZ, BROCK_TAG, 180f, failed);
+        spawned += spawnStagedBrockAndRecord(level, config.brockX, config.brockY, config.brockZ, BROCK_TAG, 180f, failed);
         config.storyNpcSetupComplete = spawned == expected;
         if (config.storyNpcSetupComplete) automaticSetupPending = false;
         EmiProgresionConfig.save();
@@ -435,6 +437,49 @@ public final class StoryService {
         return 0;
     }
 
+    private static int spawnStagedBrockAndRecord(ServerLevel level, int x, int y, int z,
+                                                  String tag, float yaw, List<String> failed) {
+        if (spawnStagedBrock(level, x, y, z, tag, yaw)) return 1;
+        failed.add("kanto_brock@" + x + "," + y + "," + z);
+        return 0;
+    }
+
+    private static boolean spawnStagedBrock(ServerLevel level, int x, int y, int z, String tag, float yaw) {
+        int stagingX = 0;
+        int stagingY = 64;
+        int stagingZ = 1250;
+        level.getChunk(stagingX >> 4, stagingZ >> 4);
+        level.getChunk(x >> 4, z >> 4);
+        AABB stagingArea = new AABB(stagingX - 3, stagingY - 3, stagingZ - 3,
+                stagingX + 4, stagingY + 5, stagingZ + 4);
+        Set<UUID> before = new HashSet<>();
+        for (Entity entity : level.getEntities((Entity) null, stagingArea, candidate -> true)) {
+            before.add(entity.getUUID());
+        }
+        CommandSourceStack source = level.getServer().createCommandSourceStack().withLevel(level)
+                .withPosition(new Vec3(stagingX + 0.5D, stagingY, stagingZ + 0.5D))
+                .withSuppressedOutput().withPermission(4);
+        executeStoryCommand(level, source,
+                storyTrainerTransientCommand("kanto_brock", stagingX, stagingY, stagingZ));
+        Entity created = findNewTrainer(level, stagingArea, before, "kanto_brock", stagingX, stagingY, stagingZ);
+        if (created == null) {
+            EmiProgresion.LOGGER.warn("RCT could not create staged kanto_brock at the proven legacy anchor {} {} {}",
+                    stagingX, stagingY, stagingZ);
+            return false;
+        }
+        created.setPos(x + 0.5D, y, z + 0.5D);
+        try {
+            // Persist only after moving so RCT records the real Pewter Gym chunk,
+            // not the temporary staging chunk where this trainer is known to load.
+            created.getClass().getMethod("setPersistent", boolean.class).invoke(created, true);
+        } catch (ReflectiveOperationException exception) {
+            EmiProgresion.LOGGER.error("Could not make staged kanto_brock persistent at {} {} {}", x, y, z, exception);
+            created.discard();
+            return false;
+        }
+        return prepareCreatedTrainer(created, "kanto_brock", x, y, z, tag, yaw);
+    }
+
     private static boolean spawn(ServerLevel level, String trainerId, int x, int y, int z, String tag, float yaw) {
         level.getChunk(x >> 4, z >> 4);
         CommandSourceStack source = level.getServer().createCommandSourceStack().withLevel(level)
@@ -464,6 +509,11 @@ public final class StoryService {
             }
         }
 
+        return prepareCreatedTrainer(created, trainerId, x, y, z, tag, yaw);
+    }
+
+    private static boolean prepareCreatedTrainer(Entity created, String trainerId, int x, int y, int z,
+                                                  String tag, float yaw) {
         created.addTag(tag);
         created.setInvulnerable(true);
         created.setSilent(true);
@@ -482,6 +532,14 @@ public final class StoryService {
 
     static String storyTrainerCommand(String trainerId, int x, int y, int z) {
         return "rctmod trainer summon_persistent " + trainerId + " " + x + " " + y + " " + z;
+    }
+
+    static String storyTrainerTransientCommand(String trainerId, int x, int y, int z) {
+        return "rctmod trainer summon " + trainerId + " " + x + " " + y + " " + z;
+    }
+
+    static String storyTrainerUnregisterCommand(UUID trainerUuid) {
+        return "rctmod trainer unregister_persistent " + trainerUuid;
     }
 
     static String storyTrainerFallbackCommand(String trainerId, int x, int y, int z) {
@@ -530,6 +588,24 @@ public final class StoryService {
                     expectedTrainerId, entity.getUUID(), x, y, z);
             entity.discard();
         }
+    }
+
+    private static void removeLegacyRctTrainersAt(ServerLevel level, int x, int y, int z) {
+        level.getChunk(x >> 4, z >> 4);
+        AABB area = new AABB(x - 3, y - 3, z - 3, x + 4, y + 5, z + 4);
+        CommandSourceStack source = level.getServer().createCommandSourceStack().withLevel(level)
+                .withSuppressedOutput().withPermission(4);
+        for (Entity entity : level.getEntities((Entity) null, area,
+                candidate -> isRctTrainerType(BuiltInRegistries.ENTITY_TYPE.getKey(candidate.getType()).toString()))) {
+            EmiProgresion.LOGGER.info("Removing legacy RCT trainer {} ({}) at obsolete Brock anchor {} {} {}",
+                    trainerId(entity), entity.getUUID(), x, y, z);
+            executeStoryCommand(level, source, storyTrainerUnregisterCommand(entity.getUUID()));
+            entity.discard();
+        }
+    }
+
+    static boolean isRctTrainerType(String entityTypeId) {
+        return "rctmod:trainer".equals(entityTypeId);
     }
 
     private static void runAs(ServerPlayer player, String command) {
