@@ -125,7 +125,8 @@ public final class AdventureRegionService {
 
         CommandSourceStack target = source.withLevel(kanto).withPosition(new Vec3(x + 0.5D, y, z + 0.5D));
         String command = "place structure " + structureId + " " + x + " " + y + " " + z;
-        return source.getServer().getCommands().performPrefixedCommand(target, command);
+        source.getServer().getCommands().performPrefixedCommand(target, command);
+        return 1;
     }
 
     public static boolean isKanto(ServerLevel level) {
