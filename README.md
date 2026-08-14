@@ -7,28 +7,38 @@ Target stack:
 - Fabric
 - Java 21
 - Cobblemon 1.7.3
+- Cobbleverse datapacks v31 / RCT v20
 
-## 0.1.0-alpha.2 — Kanto prototype through Brock
+## 0.1.0-alpha.1 — Kanto prototype through Brock
 
-The main survival/community world and the Pokémon adventure are intentionally separated.
+The main community/survival world and the Pokémon adventure are separated.
 
 ### Main world
-- Custom spawn core: 300-block protected planning radius by default.
-- Housing/community ring: up to 1000 blocks by default.
-- Intended to remain free of Cobbleverse random gyms once the exact structure-set integration is finalized.
+- Custom spawn core: 300 blocks by default.
+- Housing/community zone: up to 1000 blocks by default.
+- Kanto story structures are reserved for manual campaign placement rather than random worldgen.
 
-### Kanto world
-- Bundled custom dimension id: `emiprogresion:kanto` using Overworld-style terrain generation.
-- 8000-block world border by default.
-- Prototype route: initial town → Route 1 → Brock.
-- Brock placement is configurable and deliberately waits for the exact structure id from the server's `COBBLEVERSE-DP-v31.zip` instead of guessing.
+### Kanto adventure world
+- Bundled dimension: `emiprogresion:kanto`.
+- Overworld-style terrain and 8000-block world border.
+- First test route: Ash / initial area → Route 1 → Brock.
+- Entering Kanto attempts to set the RCT player series to `kanto` so route trainers can participate in the Kanto series.
+
+Confirmed from the supplied Cobbleverse files:
+- Ash structure: `cobbleverse:ash` (43×22×44), trainer `pallet_ash`.
+- Brock structure: `cobbleverse:brock` (27×17×24), trainer `kanto_brock`.
+- Brock defeat advancement listens for RCT trainer id `kanto_brock`.
 
 ### Commands
+
 ```text
 /emiprogresion status
 /emiprogresion layout
 /emiprogresion kanto enter
 /emiprogresion kanto leave
+/emiprogresion kanto setup
+/emiprogresion kanto ash tp
+/emiprogresion kanto ash place
 /emiprogresion kanto brock tp
 /emiprogresion kanto brock place
 /emiprogresion setspawn
@@ -36,8 +46,16 @@ The main survival/community world and the Pokémon adventure are intentionally s
 /emiprogresion reload
 ```
 
-### Important prototype limitation
+`setup`, placement/teleport admin helpers, `setspawn`, `validate`, and `reload` require permission level 2.
 
-Alpha.2 creates and manages the separate Kanto dimension and route coordinates, but it does **not** yet suppress Cobbleverse gym structures at worldgen level. To do that safely we need the exact Kanto gym structure/structure-set identifiers from the server's `COBBLEVERSE-DP-v31.zip`. Once those are confirmed, the next revision will override/exclude them from the normal world and keep only the deliberately placed campaign gyms in Kanto.
+`/emiprogresion kanto setup` attempts to place the real Cobbleverse Ash and Brock structures into the Kanto dimension at the configured coordinates.
 
-Development stays on isolated `agent/*` branches. `main` remains the stable baseline.
+### Natural Kanto gym suppression
+
+The mod bundles structure-set overrides for Ash, all eight Kanto gyms, and the Kanto League with worldgen frequency set to zero. The underlying structure definitions and NBT templates remain untouched, so they can still be deliberately placed in the adventure world.
+
+Because Cobbleverse is loaded as an external datapack on the server, pack-priority behavior must be validated in-game before pregenerating the final world. Test in fresh normal-world chunks with `/locate structure cobbleverse:brock`.
+
+Configuration is generated at `config/emiprogresion.json`.
+
+Development remains isolated on `agent/*` branches until the build is validated in-game.
