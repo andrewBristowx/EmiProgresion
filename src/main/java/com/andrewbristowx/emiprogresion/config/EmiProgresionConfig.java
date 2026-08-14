@@ -28,25 +28,28 @@ public final class EmiProgresionConfig {
     public boolean adventurePrototypeEnabled = true;
     public int kantoWorldBorderDiameter = 8000;
     public int kantoSpawnX = 0;
-    public int kantoSpawnY = 90;
     public int kantoSpawnZ = 0;
 
     public int route1EndX = 0;
     public int route1EndZ = 900;
+
+    public int ashX = 0;
+    public int ashY = 64;
+    public int ashZ = 0;
+    public String ashStructureId = "cobbleverse:ash";
+    public String ashTrainerId = "pallet_ash";
+
     public int brockX = 0;
-    public int brockY = 90;
+    public int brockY = 64;
     public int brockZ = 1250;
-    public int brockProtectionRadius = 96;
+    public int brockProtectionRadius = 64;
+    public String brockStructureId = "cobbleverse:brock";
+    public String brockTrainerId = "kanto_brock";
 
-    public boolean preventBuildingInKanto = true;
-    public boolean preventRandomGymsInMainWorld = true;
+    public boolean autoSetKantoSeriesOnEnter = true;
+    public boolean preventBuildingInKanto = false;
+    public boolean preventRandomKantoStoryStructures = true;
     public boolean requireBrockBeforeLeavingPrototype = false;
-
-    /** Fill this with the exact Cobbleverse structure id once confirmed from COBBLEVERSE-DP-v31. */
-    public String brockStructureId = "";
-
-    /** Optional comma-separated structure-id fragments that are considered gyms in the main world. */
-    public String blockedMainWorldGymPatterns = "gym,brock,misty,surge,erika,koga,sabrina,blaine,giovanni";
 
     public static EmiProgresionConfig get() {
         return INSTANCE;
@@ -72,10 +75,17 @@ public final class EmiProgresionConfig {
     }
 
     private void normalize() {
+        if (mainWorld == null || mainWorld.isBlank()) mainWorld = "minecraft:overworld";
+        if (kantoWorld == null || kantoWorld.isBlank()) kantoWorld = "emiprogresion:kanto";
+        if (ashStructureId == null || ashStructureId.isBlank()) ashStructureId = "cobbleverse:ash";
+        if (brockStructureId == null || brockStructureId.isBlank()) brockStructureId = "cobbleverse:brock";
+        if (ashTrainerId == null || ashTrainerId.isBlank()) ashTrainerId = "pallet_ash";
+        if (brockTrainerId == null || brockTrainerId.isBlank()) brockTrainerId = "kanto_brock";
+
         protectedSpawnRadius = clamp(protectedSpawnRadius, 32, 1000);
         housingRadius = clamp(housingRadius, protectedSpawnRadius, 4000);
         kantoWorldBorderDiameter = clamp(kantoWorldBorderDiameter, 1000, 30000);
-        brockProtectionRadius = clamp(brockProtectionRadius, 16, 256);
+        brockProtectionRadius = clamp(brockProtectionRadius, 24, 256);
     }
 
     private static int clamp(int value, int min, int max) {
