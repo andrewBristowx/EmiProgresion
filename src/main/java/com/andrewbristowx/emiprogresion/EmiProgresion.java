@@ -24,6 +24,6 @@ public final class EmiProgresion implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(AdventureRegionService::onServerStarted);
         ServerTickEvents.END_SERVER_TICK.register(AdventureRegionService::tick);
 
-        LOGGER.info("EmiProgresion 0.1.0-alpha.2 enabled: separate Kanto adventure prototype through Brock.");
+        LOGGER.info("EmiProgresion 0.1.0-alpha.1 enabled: separate Kanto adventure prototype from Ash to Brock.");
     }
 }
