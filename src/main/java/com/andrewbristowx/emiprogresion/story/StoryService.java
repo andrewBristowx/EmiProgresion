@@ -39,6 +39,8 @@ public final class StoryService {
     private static final Map<UUID, Long> PROMPT_COOLDOWN = new HashMap<>();
     private static StoryProgressStore progress;
     private static long ticks;
+    private static boolean automaticSetupPending;
+    private static long nextAutomaticSetupTick;
 
     private StoryService() {}
 
@@ -53,23 +55,41 @@ public final class StoryService {
 
     public static void onServerStarted(MinecraftServer server) {
         progress = new StoryProgressStore(server);
+        ticks = 0L;
+        automaticSetupPending = EmiProgresionConfig.get().storyEnabled
+                && !EmiProgresionConfig.get().storyNpcSetupComplete;
+        nextAutomaticSetupTick = 20L;
     }
 
     public static void onServerStopping() {
         if (progress != null) progress.save();
         SESSIONS.clear();
         PROMPT_COOLDOWN.clear();
+        automaticSetupPending = false;
     }
 
     public static void tick(MinecraftServer server) {
         if (progress == null || !EmiProgresionConfig.get().storyEnabled) return;
         ticks++;
+        if (automaticSetupPending && ticks >= nextAutomaticSetupTick) tickAutomaticSetup(server);
         if (ticks % 5L == 0L) tickTrainerSight(server);
         if (ticks % 20L == 0L) {
             tickBrockCompletion(server);
             tickGates(server);
         }
         if (ticks % 40L == 0L) tickGuides(server);
+    }
+
+    private static void tickAutomaticSetup(MinecraftServer server) {
+        nextAutomaticSetupTick = ticks + 20L;
+        if (!rctTrainerAvailable("kanto_brock")) return;
+        ServerLevel kanto = AdventureRegionService.getLevel(server, EmiProgresionConfig.get().kantoWorld);
+        if (kanto == null || !AdventureRegionService.hasWildKantoSignature(kanto)) return;
+
+        automaticSetupPending = false;
+        SetupResult result = setupNpcs(server);
+        EmiProgresion.LOGGER.info("Delayed automatic Kanto NPC setup: {}/{} - {}",
+                result.spawned(), result.expected(), result.message());
     }
 
     public static PlayerStoryProgress progress(ServerPlayer player) {
@@ -174,6 +194,9 @@ public final class StoryService {
         EmiProgresionConfig config = EmiProgresionConfig.get();
         ServerLevel level = AdventureRegionService.getLevel(server, config.kantoWorld);
         if (level == null) return new SetupResult(0, 0, "No existe la dimensión Kanto.");
+        if (!rctTrainerAvailable("kanto_brock")) {
+            return new SetupResult(0, 8, "RCT todavía está cargando sus entrenadores. Espera unos segundos y repite.");
+        }
         CommandSourceStack cleanup = server.createCommandSourceStack().withLevel(level).withSuppressedOutput().withPermission(4);
         for (String tag : List.of(OAK_TAG, GUIDE_TAG, COURIER_TAG, BROCK_TAG, ROUTE_TAG)) {
             server.getCommands().performPrefixedCommand(cleanup, "kill @e[tag=" + tag + "]");
@@ -198,6 +221,7 @@ public final class StoryService {
         spawned += spawnAndRecord(level, "bug_catcher_sammy_0068", 37, 112, -1080, ROUTE_TAG, 0f, failed);
         spawned += spawnAndRecord(level, "kanto_brock", config.brockX, config.brockY, config.brockZ, BROCK_TAG, 180f, failed);
         config.storyNpcSetupComplete = spawned == expected;
+        if (config.storyNpcSetupComplete) automaticSetupPending = false;
         EmiProgresionConfig.save();
         String message = failed.isEmpty() ? "NPCs preparados."
                 : "Fallaron: " + String.join(", ", failed) + ". Revisa latest.log.";
@@ -453,6 +477,21 @@ public final class StoryService {
 
     static String storyTrainerCommand(String trainerId, int x, int y, int z) {
         return "rctmod trainer summon_persistent " + trainerId + " " + x + " " + y + " " + z;
+    }
+
+    private static boolean rctTrainerAvailable(String trainerId) {
+        try {
+            Class<?> rctMod = Class.forName("com.gitlab.srcmc.rctmod.api.RCTMod");
+            Object instance = rctMod.getMethod("getInstance").invoke(null);
+            Object manager = instance.getClass().getMethod("getTrainerManager").invoke(instance);
+            Object available = manager.getClass().getMethod("isValidId", String.class).invoke(manager, trainerId);
+            return available instanceof Boolean valid && valid;
+        } catch (ReflectiveOperationException exception) {
+            if (ticks % 200L == 0L) {
+                EmiProgresion.LOGGER.warn("Waiting for RCT trainer data before automatic story setup", exception);
+            }
+            return false;
+        }
     }
 
     private static void removeOrphanAt(ServerLevel level, String expectedTrainerId, int x, int y, int z) {

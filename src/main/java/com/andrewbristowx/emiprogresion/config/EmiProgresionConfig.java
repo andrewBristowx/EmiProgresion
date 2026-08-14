@@ -13,7 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class EmiProgresionConfig {
-    private static final int CURRENT_CONFIG_VERSION = 5;
+    private static final int CURRENT_CONFIG_VERSION = 6;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("emiprogresion.json");
     private static EmiProgresionConfig INSTANCE = new EmiProgresionConfig();
@@ -129,6 +129,18 @@ public final class EmiProgresionConfig {
                 installWildKantoOnIntegratedServer = false;
                 wildKantoDownloadUrl = KantoMapInstaller.DEFAULT_URL;
                 wildKantoExpectedSha256 = KantoMapInstaller.EXPECTED_SHA256;
+            }
+            if (configVersion < 6) {
+                // Early prototypes stored Brock near 0,64,1250. Wild Kanto's Pewter
+                // gym is on the opposite side of the map at the coordinates below.
+                if (brockX == 0 && brockZ == 1250) {
+                    brockX = 22;
+                    brockY = 127;
+                    brockZ = -1294;
+                }
+                // Alpha.5.1 could run before RCT finished loading its trainer data.
+                // Force one clean, delayed rebuild after upgrading.
+                storyNpcSetupComplete = false;
             }
             configVersion = CURRENT_CONFIG_VERSION;
         }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.0-alpha.5.2
+
+- Delays automatic story NPC creation until RCT confirms that `kanto_brock` is
+  registered, avoiding invalid placeholder trainers during server startup.
+- Migrates the legacy Brock anchor `0,64,1250` to the verified Wild Kanto gym
+  anchor `22,127,-1294`.
+- Forces one clean NPC rebuild after upgrading from alpha.5.1 so incorrect or
+  prematurely created trainers are replaced automatically.
+
 ## 0.1.0-alpha.5.1
 
 - Fixes story setup reporting `0/8` when RCT did not preserve the NBT story tag.

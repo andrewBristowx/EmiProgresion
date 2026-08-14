@@ -9,6 +9,12 @@ Target stack:
 - Cobblemon 1.7.3
 - Cobbleverse datapacks v31 / RCT v20
 
+## 0.1.0-alpha.5.2 — RCT startup and Brock anchor hotfix
+
+Alpha.5.2 waits for RCT's trainer registry before creating the story NPCs. It
+also migrates the obsolete Brock anchor `0,64,1250` to the Wild Kanto Pewter Gym
+at `22,127,-1294` and automatically performs one clean rebuild after upgrading.
+
 ## 0.1.0-alpha.5.1 — RCT story NPC hotfix
 
 Alpha.5.1 fixes `NPCs de historia: 0/8`. RCT trainers are now located by their

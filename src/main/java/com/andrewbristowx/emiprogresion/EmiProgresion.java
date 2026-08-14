@@ -30,14 +30,6 @@ public final class EmiProgresion implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             AdventureRegionService.onServerStarted(server);
             StoryService.onServerStarted(server);
-            if (EmiProgresionConfig.get().storyEnabled
-                    && !EmiProgresionConfig.get().storyNpcSetupComplete) {
-                var kanto = AdventureRegionService.getLevel(server, EmiProgresionConfig.get().kantoWorld);
-                if (kanto != null && AdventureRegionService.hasWildKantoSignature(kanto)) {
-                    StoryService.SetupResult result = StoryService.setupNpcs(server);
-                    LOGGER.info("Automatic Kanto NPC setup: {}/{} - {}", result.spawned(), result.expected(), result.message());
-                }
-            }
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> StoryService.onServerStopping());
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -45,6 +37,6 @@ public final class EmiProgresion implements ModInitializer {
             StoryService.tick(server);
         });
 
-        LOGGER.info("EmiProgresion 0.1.0-alpha.5.1 enabled: corrected RCT story NPC setup.");
+        LOGGER.info("EmiProgresion 0.1.0-alpha.5.2 enabled: RCT-ready story setup and corrected Brock anchor.");
     }
 }
