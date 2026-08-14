@@ -1,0 +1,4 @@
+{
+  "structures": [{"structure": "cobbleverse:kanto_league", "weight": 1}],
+  "placement": {"salt": 9045, "spacing": 120, "separation": 50, "type": "random_spread", "frequency": 0.0}
+}
