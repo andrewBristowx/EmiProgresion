@@ -14,10 +14,13 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -175,19 +178,30 @@ public final class StoryService {
         for (String tag : List.of(OAK_TAG, GUIDE_TAG, COURIER_TAG, BROCK_TAG, ROUTE_TAG)) {
             server.getCommands().performPrefixedCommand(cleanup, "kill @e[tag=" + tag + "]");
         }
+        removeOrphanAt(level, "professor_oak_00c8", config.oakX, config.oakY, config.oakZ);
+        removeOrphanAt(level, "youngster_ben_0065", config.palletGuideX, config.palletGuideY, config.palletGuideZ);
+        removeOrphanAt(level, "youngster_calvin_005a", config.viridianCourierX, config.viridianCourierY, config.viridianCourierZ);
+        removeOrphanAt(level, "youngster_ben_0065", 78, 76, 12);
+        removeOrphanAt(level, "bug_catcher_rick_0066", -61, 91, -704);
+        removeOrphanAt(level, "bug_catcher_doug_0067", -14, 102, -889);
+        removeOrphanAt(level, "bug_catcher_sammy_0068", 37, 112, -1080);
+        removeOrphanAt(level, "kanto_brock", config.brockX, config.brockY, config.brockZ);
         int expected = 8;
         int spawned = 0;
-        spawned += spawn(level, "professor_oak_00c8", config.oakX, config.oakY, config.oakZ, OAK_TAG, 180f) ? 1 : 0;
-        spawned += spawn(level, "youngster_ben_0065", config.palletGuideX, config.palletGuideY, config.palletGuideZ, GUIDE_TAG, 0f) ? 1 : 0;
-        spawned += spawn(level, "youngster_calvin_005a", config.viridianCourierX, config.viridianCourierY, config.viridianCourierZ, COURIER_TAG, 180f) ? 1 : 0;
-        spawned += spawn(level, "youngster_ben_0065", 78, 76, 12, ROUTE_TAG, 0f) ? 1 : 0;
-        spawned += spawn(level, "bug_catcher_rick_0066", -61, 91, -704, ROUTE_TAG, 0f) ? 1 : 0;
-        spawned += spawn(level, "bug_catcher_doug_0067", -14, 102, -889, ROUTE_TAG, 180f) ? 1 : 0;
-        spawned += spawn(level, "bug_catcher_sammy_0068", 37, 112, -1080, ROUTE_TAG, 0f) ? 1 : 0;
-        spawned += spawn(level, "kanto_brock", config.brockX, config.brockY, config.brockZ, BROCK_TAG, 180f) ? 1 : 0;
+        List<String> failed = new ArrayList<>();
+        spawned += spawnAndRecord(level, "professor_oak_00c8", config.oakX, config.oakY, config.oakZ, OAK_TAG, 180f, failed);
+        spawned += spawnAndRecord(level, "youngster_ben_0065", config.palletGuideX, config.palletGuideY, config.palletGuideZ, GUIDE_TAG, 0f, failed);
+        spawned += spawnAndRecord(level, "youngster_calvin_005a", config.viridianCourierX, config.viridianCourierY, config.viridianCourierZ, COURIER_TAG, 180f, failed);
+        spawned += spawnAndRecord(level, "youngster_ben_0065", 78, 76, 12, ROUTE_TAG, 0f, failed);
+        spawned += spawnAndRecord(level, "bug_catcher_rick_0066", -61, 91, -704, ROUTE_TAG, 0f, failed);
+        spawned += spawnAndRecord(level, "bug_catcher_doug_0067", -14, 102, -889, ROUTE_TAG, 180f, failed);
+        spawned += spawnAndRecord(level, "bug_catcher_sammy_0068", 37, 112, -1080, ROUTE_TAG, 0f, failed);
+        spawned += spawnAndRecord(level, "kanto_brock", config.brockX, config.brockY, config.brockZ, BROCK_TAG, 180f, failed);
         config.storyNpcSetupComplete = spawned == expected;
         EmiProgresionConfig.save();
-        return new SetupResult(spawned, expected, spawned == expected ? "NPCs preparados." : "Revisa los anclajes y los datapacks de RCT.");
+        String message = failed.isEmpty() ? "NPCs preparados."
+                : "Fallaron: " + String.join(", ", failed) + ". Revisa latest.log.";
+        return new SetupResult(spawned, expected, message);
     }
 
     public static void reset(ServerPlayer player) {
@@ -386,18 +400,70 @@ public final class StoryService {
         }
     }
 
+    private static int spawnAndRecord(ServerLevel level, String trainerId, int x, int y, int z,
+                                      String tag, float yaw, List<String> failed) {
+        if (spawn(level, trainerId, x, y, z, tag, yaw)) return 1;
+        failed.add(trainerId + "@" + x + "," + y + "," + z);
+        return 0;
+    }
+
     private static boolean spawn(ServerLevel level, String trainerId, int x, int y, int z, String tag, float yaw) {
         level.getChunk(x >> 4, z >> 4);
         CommandSourceStack source = level.getServer().createCommandSourceStack().withLevel(level)
                 .withPosition(new Vec3(x + 0.5D, y, z + 0.5D)).withSuppressedOutput().withPermission(4);
-        String nbt = "{NoAI:1b,Invulnerable:1b,Silent:1b,PersistenceRequired:1b,Rotation:[" + yaw
-                + "f,0f],Tags:[\"" + tag + "\"]}";
-        level.getServer().getCommands().performPrefixedCommand(source,
-                "rctmod trainer summon_persistent " + trainerId + " ~ ~ ~ " + nbt);
-        boolean found = !level.getEntities((Entity) null, new AABB(x - 2, y - 2, z - 2, x + 3, y + 4, z + 3),
-                entity -> entity.getTags().contains(tag)).isEmpty();
-        if (!found) EmiProgresion.LOGGER.warn("Could not summon story trainer {} at {} {} {}", trainerId, x, y, z);
-        return found;
+        AABB search = new AABB(x - 3, y - 3, z - 3, x + 4, y + 5, z + 4);
+        HashSet<UUID> before = new HashSet<>();
+        for (Entity entity : level.getEntities((Entity) null, search,
+                candidate -> trainerId.equals(trainerId(candidate)))) {
+            before.add(entity.getUUID());
+        }
+        String command = storyTrainerCommand(trainerId, x, y, z);
+        try {
+            level.getServer().getCommands().getDispatcher().execute(command, source);
+        } catch (Exception exception) {
+            EmiProgresion.LOGGER.error("RCT rejected story trainer command '{}'", command, exception);
+            return false;
+        }
+
+        Entity created = level.getEntities((Entity) null, search,
+                        candidate -> trainerId.equals(trainerId(candidate)) && !before.contains(candidate.getUUID()))
+                .stream().min(java.util.Comparator.comparingDouble(candidate -> candidate.distanceToSqr(x, y, z)))
+                .orElse(null);
+        if (created == null) {
+            EmiProgresion.LOGGER.warn("RCT command completed but no new story trainer {} was found at {} {} {}",
+                    trainerId, x, y, z);
+            return false;
+        }
+
+        created.addTag(tag);
+        created.setInvulnerable(true);
+        created.setSilent(true);
+        created.setPos(x + 0.5D, y, z + 0.5D);
+        created.setYRot(yaw);
+        created.setXRot(0f);
+        if (created instanceof Mob mob) {
+            mob.setNoAi(true);
+            mob.setPersistenceRequired();
+            mob.setYBodyRot(yaw);
+            mob.setYHeadRot(yaw);
+        }
+        EmiProgresion.LOGGER.info("Prepared story trainer {} ({}) at {} {} {}", trainerId, created.getUUID(), x, y, z);
+        return created.getTags().contains(tag);
+    }
+
+    static String storyTrainerCommand(String trainerId, int x, int y, int z) {
+        return "rctmod trainer summon_persistent " + trainerId + " " + x + " " + y + " " + z;
+    }
+
+    private static void removeOrphanAt(ServerLevel level, String expectedTrainerId, int x, int y, int z) {
+        level.getChunk(x >> 4, z >> 4);
+        AABB area = new AABB(x - 3, y - 3, z - 3, x + 4, y + 5, z + 4);
+        for (Entity entity : level.getEntities((Entity) null, area,
+                candidate -> expectedTrainerId.equals(trainerId(candidate)))) {
+            EmiProgresion.LOGGER.info("Removing previous untagged/duplicate story trainer {} ({}) at anchor {} {} {}",
+                    expectedTrainerId, entity.getUUID(), x, y, z);
+            entity.discard();
+        }
     }
 
     private static void runAs(ServerPlayer player, String command) {

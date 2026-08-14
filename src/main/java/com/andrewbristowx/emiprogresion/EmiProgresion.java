@@ -45,6 +45,6 @@ public final class EmiProgresion implements ModInitializer {
             StoryService.tick(server);
         });
 
-        LOGGER.info("EmiProgresion 0.1.0-alpha.5 enabled: automatic Wild Kanto installation and story through Brock.");
+        LOGGER.info("EmiProgresion 0.1.0-alpha.5.1 enabled: corrected RCT story NPC setup.");
     }
 }

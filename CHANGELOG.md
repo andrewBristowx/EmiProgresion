@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0-alpha.5.1
+
+- Fixes story setup reporting `0/8` when RCT did not preserve the NBT story tag.
+- Summons persistent RCT trainers with the documented minimal command, then applies
+  story tags, position, rotation, invulnerability and NoAI directly on the entity.
+- Detects the new trainer by its RCT trainer ID instead of assuming its tag survived
+  the summon command.
+- Removes untagged trainers left at story anchors by the alpha.5 setup attempt.
+- Reports the exact failed trainer IDs and coordinates in chat and adds detailed
+  server-log diagnostics.
+
 ## 0.1.0-alpha.5
 
 - Automatically downloads the versioned cleaned Wild Kanto archive on the first

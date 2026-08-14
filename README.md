@@ -9,6 +9,13 @@ Target stack:
 - Cobblemon 1.7.3
 - Cobbleverse datapacks v31 / RCT v20
 
+## 0.1.0-alpha.5.1 — RCT story NPC hotfix
+
+Alpha.5.1 fixes `NPCs de historia: 0/8`. RCT trainers are now located by their
+trainer ID after summoning and EmiProgresion applies its story tag and stationary
+properties directly. Running `/emiprogresion story setup` also removes any
+untagged duplicate left at the eight configured anchors by alpha.5.
+
 ## 0.1.0-alpha.5 — automatic Wild Kanto server installation
 
 Alpha.5 removes the need to copy map folders by hand. On the first dedicated-
