@@ -57,9 +57,11 @@ public final class EmiProgresionCommand {
         source.sendSuccess(() -> Component.literal("Aventura: " + c.kantoWorld
                         + " • Border: " + c.kantoWorldBorderDiameter + "b")
                 .withStyle(ChatFormatting.GRAY), false);
-        source.sendSuccess(() -> Component.literal("Ash: " + c.ashStructureId + " @ " + c.ashX + "," + c.ashZ
-                        + " • Brock: " + c.brockStructureId + " @ " + c.brockX + "," + c.brockZ)
+        source.sendSuccess(() -> Component.literal("Ash: " + c.ashStructureId + " @ X/Z " + c.ashX + "," + c.ashZ
+                        + " • Brock: " + c.brockStructureId + " @ X/Z " + c.brockX + "," + c.brockZ)
                 .withStyle(ChatFormatting.YELLOW), false);
+        source.sendSuccess(() -> Component.literal("Altura Y: automática según la superficie real del mundo Kanto.")
+                .withStyle(ChatFormatting.GREEN), false);
         return 1;
     }
 
@@ -71,7 +73,7 @@ public final class EmiProgresionCommand {
         source.sendSuccess(() -> Component.literal("Mundo aventura: Ash/Pueblo inicial → Ruta 1 (hasta Z "
                         + c.route1EndZ + ") → Brock (Z " + c.brockZ + ").")
                 .withStyle(ChatFormatting.GREEN), false);
-        source.sendSuccess(() -> Component.literal("Los gimnasios de Kanto se reservan para colocación manual; no deben generarse aleatoriamente.")
+        source.sendSuccess(() -> Component.literal("Los puntos de campaña usan altura automática; no se usa Y fija.")
                 .withStyle(ChatFormatting.GRAY), false);
         return 1;
     }
@@ -89,11 +91,11 @@ public final class EmiProgresionCommand {
     private static int setupKanto(CommandSourceStack source) {
         int placed = AdventureRegionService.setupPrototype(source);
         if (placed == 2) {
-            source.sendSuccess(() -> Component.literal("✓ Prototipo Kanto colocado: Ash + Brock.")
+            source.sendSuccess(() -> Component.literal("✓ Prototipo Kanto enviado: Ash + Brock sobre la superficie real.")
                     .withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD), true);
             return 1;
         }
-        source.sendFailure(Component.literal("No se pudieron colocar las dos estructuras. Revisa la consola y /emiprogresion validate."));
+        source.sendFailure(Component.literal("No se pudieron enviar las dos colocaciones. Revisa la consola y /emiprogresion validate."));
         return 0;
     }
 
@@ -104,8 +106,8 @@ public final class EmiProgresionCommand {
 
     private static int placeAsh(CommandSourceStack source) {
         EmiProgresionConfig c = EmiProgresionConfig.get();
-        int result = AdventureRegionService.placeStructure(source, c.ashStructureId, c.ashX, c.ashY, c.ashZ);
-        if (result > 0) source.sendSuccess(() -> Component.literal("✓ Estructura de Ash colocada.").withStyle(ChatFormatting.GREEN), true);
+        int result = AdventureRegionService.placeStructureAtSurface(source, c.ashStructureId, c.ashX, c.ashZ);
+        if (result > 0) source.sendSuccess(() -> Component.literal("✓ Estructura de Ash enviada a la superficie real.").withStyle(ChatFormatting.GREEN), true);
         else source.sendFailure(Component.literal("No se pudo colocar " + c.ashStructureId));
         return result > 0 ? 1 : 0;
     }
@@ -117,8 +119,8 @@ public final class EmiProgresionCommand {
 
     private static int placeBrock(CommandSourceStack source) {
         EmiProgresionConfig c = EmiProgresionConfig.get();
-        int result = AdventureRegionService.placeStructure(source, c.brockStructureId, c.brockX, c.brockY, c.brockZ);
-        if (result > 0) source.sendSuccess(() -> Component.literal("✓ Gimnasio de Brock colocado con trainer id " + c.brockTrainerId + ".")
+        int result = AdventureRegionService.placeStructureAtSurface(source, c.brockStructureId, c.brockX, c.brockZ);
+        if (result > 0) source.sendSuccess(() -> Component.literal("✓ Gimnasio de Brock enviado a la superficie real; trainer id " + c.brockTrainerId + ".")
                 .withStyle(ChatFormatting.GREEN), true);
         else source.sendFailure(Component.literal("No se pudo colocar " + c.brockStructureId));
         return result > 0 ? 1 : 0;
@@ -140,21 +142,28 @@ public final class EmiProgresionCommand {
 
     private static int validate(CommandSourceStack source) {
         EmiProgresionConfig c = EmiProgresionConfig.get();
-        boolean kantoExists = AdventureRegionService.getLevel(source.getServer(), c.kantoWorld) != null;
+        var kanto = AdventureRegionService.getLevel(source.getServer(), c.kantoWorld);
+        boolean kantoExists = kanto != null;
         boolean idsOk = "cobbleverse:ash".equals(c.ashStructureId)
                 && "cobbleverse:brock".equals(c.brockStructureId)
                 && "kanto_brock".equals(c.brockTrainerId);
 
-        source.sendSuccess(() -> Component.literal("Validación Kanto alpha.1:")
+        source.sendSuccess(() -> Component.literal("Validación Kanto alpha.2:")
                 .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), false);
         source.sendSuccess(() -> Component.literal((kantoExists ? "✓ " : "✕ ") + "Dimensión Kanto: " + c.kantoWorld)
                 .withStyle(kantoExists ? ChatFormatting.GREEN : ChatFormatting.RED), false);
         source.sendSuccess(() -> Component.literal((idsOk ? "✓ " : "✕ ")
                         + "IDs Cobbleverse confirmados: Ash/Brock/kanto_brock")
                 .withStyle(idsOk ? ChatFormatting.GREEN : ChatFormatting.RED), false);
+        if (kanto != null) {
+            int ashY = AdventureRegionService.getSurfaceY(kanto, c.ashX, c.ashZ);
+            int brockY = AdventureRegionService.getSurfaceY(kanto, c.brockX, c.brockZ);
+            source.sendSuccess(() -> Component.literal("✓ Superficie detectada: Ash Y=" + ashY + " • Brock Y=" + brockY)
+                    .withStyle(ChatFormatting.GREEN), false);
+        }
         source.sendSuccess(() -> Component.literal("✓ Border previsto: " + c.kantoWorldBorderDiameter + " bloques")
                 .withStyle(ChatFormatting.GREEN), false);
-        source.sendSuccess(() -> Component.literal("⚠ Comprueba en chunks nuevos del mundo normal que /locate structure cobbleverse:brock no encuentre generación natural.")
+        source.sendSuccess(() -> Component.literal("⚠ Bloqueo de gimnasios aleatorios del mundo normal sigue en validación; no pregeneres todavía.")
                 .withStyle(ChatFormatting.YELLOW), false);
         return kantoExists && idsOk ? 1 : 0;
     }
