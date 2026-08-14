@@ -3,6 +3,7 @@ package com.andrewbristowx.emiprogresion.region;
 import com.andrewbristowx.emiprogresion.EmiProgresion;
 import com.andrewbristowx.emiprogresion.config.EmiProgresionConfig;
 import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -15,7 +16,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.commands.CommandSourceStack;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -76,14 +76,16 @@ public final class AdventureRegionService {
             return false;
         }
 
-        int y = safeSurfaceY(kanto, c.kantoSpawnX, c.kantoSpawnZ);
-        player.teleportTo(kanto, c.kantoSpawnX + 0.5D, y, c.kantoSpawnZ + 0.5D, player.getYRot(), player.getXRot());
+        BlockPos safe = findSafeSurface(kanto, c.kantoSpawnX, c.kantoSpawnZ);
+        player.teleportTo(kanto, safe.getX() + 0.5D, safe.getY(), safe.getZ() + 0.5D,
+                player.getYRot(), player.getXRot());
 
         if (c.autoSetKantoSeriesOnEnter) {
             activateKantoSeries(player);
         }
 
-        player.sendSystemMessage(Component.literal("Has entrado a Kanto. Brock está aproximadamente en Z +" + c.brockZ + ".")
+        player.sendSystemMessage(Component.literal("Has entrado a Kanto en superficie segura Y=" + safe.getY()
+                        + ". Brock está aproximadamente en Z +" + c.brockZ + ".")
                 .withStyle(ChatFormatting.GREEN));
         return true;
     }
@@ -97,7 +99,12 @@ public final class AdventureRegionService {
             return false;
         }
 
-        player.teleportTo(main, c.mainSpawnX + 0.5D, c.mainSpawnY, c.mainSpawnZ + 0.5D, player.getYRot(), player.getXRot());
+        BlockPos preferred = new BlockPos(c.mainSpawnX, c.mainSpawnY, c.mainSpawnZ);
+        BlockPos destination = isSafeStandPosition(main, preferred)
+                ? preferred
+                : findSafeSurface(main, c.mainSpawnX, c.mainSpawnZ);
+        player.teleportTo(main, destination.getX() + 0.5D, destination.getY(), destination.getZ() + 0.5D,
+                player.getYRot(), player.getXRot());
         return true;
     }
 
@@ -105,17 +112,47 @@ public final class AdventureRegionService {
         EmiProgresionConfig c = EmiProgresionConfig.get();
         ServerLevel kanto = getLevel(player.server, c.kantoWorld);
         if (kanto == null) return false;
-        int y = safeSurfaceY(kanto, x, z);
-        player.teleportTo(kanto, x + 0.5D, y, z + 0.5D, player.getYRot(), player.getXRot());
+
+        BlockPos safe = findSafeSurface(kanto, x, z);
+        player.teleportTo(kanto, safe.getX() + 0.5D, safe.getY(), safe.getZ() + 0.5D,
+                player.getYRot(), player.getXRot());
+        player.sendSystemMessage(Component.literal("TP seguro: " + safe.getX() + " " + safe.getY() + " " + safe.getZ())
+                .withStyle(ChatFormatting.GRAY));
         return true;
     }
 
     public static int setupPrototype(CommandSourceStack source) {
         EmiProgresionConfig c = EmiProgresionConfig.get();
-        int ash = placeStructure(source, c.ashStructureId, c.ashX, c.ashY, c.ashZ);
-        int brock = placeStructure(source, c.brockStructureId, c.brockX, c.brockY, c.brockZ);
+        ServerLevel kanto = getLevel(source.getServer(), c.kantoWorld);
+        if (kanto == null) {
+            source.sendFailure(Component.literal("No existe la dimensión Kanto: " + c.kantoWorld));
+            return 0;
+        }
+
+        int ashY = structureSurfaceY(kanto, c.ashX, c.ashZ);
+        int brockY = structureSurfaceY(kanto, c.brockX, c.brockZ);
+
+        int ash = placeStructure(source, c.ashStructureId, c.ashX, ashY, c.ashZ);
+        int brock = placeStructure(source, c.brockStructureId, c.brockX, brockY, c.brockZ);
         applyKantoBorder(source.getServer());
+
+        if (ash > 0) {
+            source.sendSuccess(() -> Component.literal("Ash colocado en superficie: " + c.ashX + " " + ashY + " " + c.ashZ)
+                    .withStyle(ChatFormatting.GREEN), false);
+        }
+        if (brock > 0) {
+            source.sendSuccess(() -> Component.literal("Brock colocado en superficie: " + c.brockX + " " + brockY + " " + c.brockZ)
+                    .withStyle(ChatFormatting.GREEN), false);
+        }
         return (ash > 0 ? 1 : 0) + (brock > 0 ? 1 : 0);
+    }
+
+    public static int placeStructureAtSurface(CommandSourceStack source, String structureId, int x, int z) {
+        EmiProgresionConfig c = EmiProgresionConfig.get();
+        ServerLevel kanto = getLevel(source.getServer(), c.kantoWorld);
+        if (kanto == null) return 0;
+        int y = structureSurfaceY(kanto, x, z);
+        return placeStructure(source, structureId, x, y, z);
     }
 
     public static int placeStructure(CommandSourceStack source, String structureId, int x, int y, int z) {
@@ -129,6 +166,10 @@ public final class AdventureRegionService {
         return 1;
     }
 
+    public static int getSurfaceY(ServerLevel level, int x, int z) {
+        return structureSurfaceY(level, x, z);
+    }
+
     public static boolean isKanto(ServerLevel level) {
         return level.dimension().location().toString().equals(EmiProgresionConfig.get().kantoWorld);
     }
@@ -140,8 +181,37 @@ public final class AdventureRegionService {
         return dx * dx + dz * dz <= (long) c.brockProtectionRadius * c.brockProtectionRadius;
     }
 
-    private static int safeSurfaceY(ServerLevel level, int x, int z) {
-        return level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) + 1;
+    private static int structureSurfaceY(ServerLevel level, int x, int z) {
+        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+        return Math.max(level.getMinBuildHeight() + 2, Math.min(y, level.getMaxBuildHeight() - 3));
+    }
+
+    private static BlockPos findSafeSurface(ServerLevel level, int x, int z) {
+        int baseY = structureSurfaceY(level, x, z);
+        BlockPos candidate = new BlockPos(x, baseY, z);
+        if (isSafeStandPosition(level, candidate)) return candidate;
+
+        int maxY = Math.min(level.getMaxBuildHeight() - 3, baseY + 12);
+        for (int y = baseY + 1; y <= maxY; y++) {
+            candidate = new BlockPos(x, y, z);
+            if (isSafeStandPosition(level, candidate)) return candidate;
+        }
+
+        int minY = Math.max(level.getMinBuildHeight() + 2, baseY - 24);
+        for (int y = baseY - 1; y >= minY; y--) {
+            candidate = new BlockPos(x, y, z);
+            if (isSafeStandPosition(level, candidate)) return candidate;
+        }
+
+        return new BlockPos(x, baseY, z);
+    }
+
+    private static boolean isSafeStandPosition(ServerLevel level, BlockPos feet) {
+        BlockPos below = feet.below();
+        BlockPos head = feet.above();
+        return !level.getBlockState(below).getCollisionShape(level, below).isEmpty()
+                && level.getBlockState(feet).getCollisionShape(level, feet).isEmpty()
+                && level.getBlockState(head).getCollisionShape(level, head).isEmpty();
     }
 
     private static void activateKantoSeries(ServerPlayer player) {
