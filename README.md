@@ -9,6 +9,46 @@ Target stack:
 - Cobblemon 1.7.3
 - Cobbleverse datapacks v31 / RCT v20
 
+## 0.1.0-alpha.5 — automatic Wild Kanto server installation
+
+Alpha.5 removes the need to copy map folders by hand. On the first dedicated-
+server start, before any Minecraft levels are loaded, the mod:
+
+1. detects whether a complete Wild Kanto installation already exists;
+2. downloads the versioned 764 MB cleaned archive over HTTPS only when needed;
+3. verifies the exact SHA-256 before opening it;
+4. extracts only the 337 files inside `region`, `entities` and `poi`;
+5. moves an older or partial Kanto dimension into a recoverable timestamped backup;
+6. installs the staged dimension and writes an attribution/version marker; and
+7. automatically prepares the story NPCs after the server finishes loading.
+
+The client never downloads the map. Players still need the alpha.5 JAR and the
+RCT resource pack because the dialogue interface and portraits are client-side.
+
+The first server start can take several minutes and needs roughly 2 GB of free
+working space. Installation progress is printed to the server console. If the
+download fails, the normal world continues to start and Kanto remains locked;
+the next restart retries without teleporting anyone to an unsafe position.
+
+Useful operator commands:
+
+```text
+/emiprogresion kanto installstatus
+/emiprogresion validate
+/emiprogresion kanto enter
+```
+
+No existing complete manual import is overwritten. Partial/old dimension data is
+moved to `world/emiprogresion-backups/kanto-before-auto-<date>/`. Servers whose
+host blocks GitHub downloads can place the verified archive at
+`config/emiprogresion/WildKanto-EMIPOKEMON-clean-alpha1.zip` and restart; the mod
+will verify and install that local file automatically.
+
+The download URL, expected SHA-256 and automatic-install switch are stored in
+`config/emiprogresion.json`. The default archive is the cleaned derivative of
+[Wild Kanto by RobotJoel](https://www.planetminecraft.com/project/wild-kanto-a-cobblemon-region-map/),
+distributed with attribution under CC BY-NC-SA 4.0 and never sold separately.
+
 ## 0.1.0-alpha.4 — first playable story through Brock
 
 Alpha.4 turns the validated Wild Kanto copy into the first playable campaign
@@ -46,18 +86,19 @@ advance this campaign.
 
 ### Story setup and test
 
-Work only on a backup/copy of the cleaned map. After importing it into
-`emiprogresion:kanto`, start the server and run:
+With alpha.5, start the dedicated server and wait for the automatic map installer.
+After it reports completion, run:
 
 ```text
 /emiprogresion validate
-/emiprogresion story setup
 /emiprogresion kanto enter
 /emiprogresion story objective
 ```
 
-`story setup` removes and recreates only entities tagged as EmiProgresion story
-NPCs. It does not replace buildings, terrain or normal Cobbleverse trainers.
+Story NPCs are prepared automatically after a successful first installation.
+`story setup` remains available for corrections and removes/recreates only entities
+tagged as EmiProgresion story NPCs. It does not replace buildings, terrain or
+normal Cobbleverse trainers.
 The default anchors were read from Wild Kanto 1-00-02. If an interior needs a
 small correction, stand on the desired block and use one of:
 

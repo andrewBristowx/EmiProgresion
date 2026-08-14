@@ -30,6 +30,8 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
     modImplementation "maven.modrinth:MdwFAVRL:kF7CvxTo"
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
 processResources {
@@ -38,6 +40,10 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach { options.release = 21 }
+
+test {
+    useJUnitPlatform()
+}
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21

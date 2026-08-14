@@ -1,6 +1,7 @@
 package com.andrewbristowx.emiprogresion.config;
 
 import com.andrewbristowx.emiprogresion.EmiProgresion;
+import com.andrewbristowx.emiprogresion.region.KantoMapInstaller;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
@@ -12,7 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class EmiProgresionConfig {
-    private static final int CURRENT_CONFIG_VERSION = 4;
+    private static final int CURRENT_CONFIG_VERSION = 5;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("emiprogresion.json");
     private static EmiProgresionConfig INSTANCE = new EmiProgresionConfig();
@@ -31,6 +32,10 @@ public final class EmiProgresionConfig {
     /** Wild Kanto 1-00-02 cleaned map defaults. */
     public boolean adventurePrototypeEnabled = true;
     public boolean requireWildKantoMap = true;
+    public boolean autoInstallWildKanto = true;
+    public boolean installWildKantoOnIntegratedServer = false;
+    public String wildKantoDownloadUrl = KantoMapInstaller.DEFAULT_URL;
+    public String wildKantoExpectedSha256 = KantoMapInstaller.EXPECTED_SHA256;
     public int kantoSpawnX = 87;
     public int kantoSpawnY = 74;
     public int kantoSpawnZ = 130;
@@ -97,6 +102,12 @@ public final class EmiProgresionConfig {
     private void normalize() {
         if (mainWorld == null || mainWorld.isBlank()) mainWorld = "minecraft:overworld";
         if (kantoWorld == null || kantoWorld.isBlank()) kantoWorld = "emiprogresion:kanto";
+        if (wildKantoDownloadUrl == null || wildKantoDownloadUrl.isBlank()) {
+            wildKantoDownloadUrl = KantoMapInstaller.DEFAULT_URL;
+        }
+        if (wildKantoExpectedSha256 == null || !wildKantoExpectedSha256.matches("(?i)[0-9a-f]{64}")) {
+            wildKantoExpectedSha256 = KantoMapInstaller.EXPECTED_SHA256;
+        }
 
         // Alpha.2 generated coordinates for an empty noise world. Migrate old configs
         // to the imported Wild Kanto map instead of keeping the unsafe Y=-64 fallback.
@@ -113,6 +124,12 @@ public final class EmiProgresionConfig {
             kantoGeneratedMinZ = -2416;
             kantoGeneratedMaxZ = 1919;
             autoSetKantoSeriesOnEnter = false;
+            if (configVersion < 5) {
+                autoInstallWildKanto = true;
+                installWildKantoOnIntegratedServer = false;
+                wildKantoDownloadUrl = KantoMapInstaller.DEFAULT_URL;
+                wildKantoExpectedSha256 = KantoMapInstaller.EXPECTED_SHA256;
+            }
             configVersion = CURRENT_CONFIG_VERSION;
         }
 

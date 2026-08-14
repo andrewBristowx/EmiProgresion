@@ -2,6 +2,7 @@ package com.andrewbristowx.emiprogresion.command;
 
 import com.andrewbristowx.emiprogresion.config.EmiProgresionConfig;
 import com.andrewbristowx.emiprogresion.region.AdventureRegionService;
+import com.andrewbristowx.emiprogresion.region.KantoMapInstaller;
 import com.andrewbristowx.emiprogresion.story.StoryService;
 import net.fabricmc.loader.api.FabricLoader;
 import com.mojang.brigadier.CommandDispatcher;
@@ -26,7 +27,10 @@ public final class EmiProgresionCommand {
                                 .executes(ctx -> setupKanto(ctx.getSource())))
                         .then(Commands.literal("mapcheck")
                                 .requires(s -> s.hasPermission(2))
-                                .executes(ctx -> validate(ctx.getSource()))))
+                                .executes(ctx -> validate(ctx.getSource())))
+                        .then(Commands.literal("installstatus")
+                                .requires(s -> s.hasPermission(2))
+                                .executes(ctx -> installerStatus(ctx.getSource()))))
                 .then(Commands.literal("story")
                         .then(Commands.literal("status").executes(ctx -> storyStatus(ctx.getSource())))
                         .then(Commands.literal("objective").executes(ctx -> storyObjective(ctx.getSource())))
@@ -131,8 +135,10 @@ public final class EmiProgresionCommand {
                 new net.minecraft.core.BlockPos(config.kantoSpawnX, config.kantoSpawnY, config.kantoSpawnZ)
         );
 
-        source.sendSuccess(() -> Component.literal("Validación Wild Kanto alpha.4:")
+        source.sendSuccess(() -> Component.literal("Validación Wild Kanto alpha.5:")
                 .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), false);
+        validationLine(source, KantoMapInstaller.state() != KantoMapInstaller.InstallState.FAILED,
+                "Instalador automático: " + KantoMapInstaller.state());
         validationLine(source, dimensionExists, "Dimensión Kanto: " + config.kantoWorld);
         validationLine(source, signatureFound, "Firma del mapa Wild Kanto 1-00-02");
         validationLine(source, safeSpawn, "Spawn seguro cerca de " + config.kantoSpawnX + " "
@@ -146,6 +152,27 @@ public final class EmiProgresionCommand {
                 .withStyle(ChatFormatting.YELLOW), false);
 
         return dimensionExists && signatureFound && safeSpawn && spawnInsideGeneratedMap ? 1 : 0;
+    }
+
+    private static int installerStatus(CommandSourceStack source) {
+        KantoMapInstaller.InstallState state = KantoMapInstaller.state();
+        boolean ok = state == KantoMapInstaller.InstallState.INSTALLED
+                || state == KantoMapInstaller.InstallState.ALREADY_INSTALLED;
+        ChatFormatting color = ok ? ChatFormatting.GREEN
+                : state == KantoMapInstaller.InstallState.FAILED ? ChatFormatting.RED : ChatFormatting.YELLOW;
+        source.sendSuccess(() -> Component.literal("Instalador Wild Kanto: " + state)
+                .withStyle(color, ChatFormatting.BOLD), false);
+        source.sendSuccess(() -> Component.literal(KantoMapInstaller.detail())
+                .withStyle(ChatFormatting.GRAY), false);
+        if (KantoMapInstaller.lastBackup() != null) {
+            source.sendSuccess(() -> Component.literal("Respaldo anterior: " + KantoMapInstaller.lastBackup())
+                    .withStyle(ChatFormatting.YELLOW), false);
+        }
+        if (state == KantoMapInstaller.InstallState.FAILED) {
+            source.sendSuccess(() -> Component.literal("El servidor continuará, pero Kanto seguirá bloqueado. Corrige la conexión o configuración y reinicia para reintentar.")
+                    .withStyle(ChatFormatting.RED), false);
+        }
+        return ok ? 1 : 0;
     }
 
     private static void validationLine(CommandSourceStack source, boolean ok, String text) {

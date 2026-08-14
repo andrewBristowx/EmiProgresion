@@ -88,7 +88,7 @@ public final class AdventureRegionService {
         if (config.requireWildKantoMap && !hasWildKantoSignature(kanto)) {
             player.sendSystemMessage(Component.literal("Kanto bloqueado: no se detectó el mapa Wild Kanto limpio en la dimensión.")
                     .withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
-            player.sendSystemMessage(Component.literal("Importa region, entities y poi, reinicia el servidor y ejecuta /emiprogresion validate.")
+            player.sendSystemMessage(Component.literal("Revisa /emiprogresion kanto installstatus y reinicia el servidor para reintentar la instalación automática.")
                     .withStyle(ChatFormatting.YELLOW));
             return false;
         }

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.0-alpha.5
+
+- Automatically downloads the versioned cleaned Wild Kanto archive on the first
+  dedicated-server start; clients do not download the map.
+- Verifies the archive with a pinned SHA-256 before extracting any file.
+- Extracts only `region`, `entities` and `poi`, with entry-count, size and path-
+  traversal protections.
+- Runs before Minecraft loads any level, preventing live region-file replacement.
+- Recognizes a complete manual import and leaves it untouched.
+- Moves old or partial Kanto data into a timestamped, recoverable backup before
+  installing the clean dimension.
+- Keeps a local-archive fallback for hosts that block outbound GitHub downloads.
+- Adds `/emiprogresion kanto installstatus` and installer state to validation.
+- Automatically creates the alpha.4 story NPCs after a fresh map installation.
+- Adds unit tests plus a full extraction test against the real 764 MB archive.
+- Updates configuration to version 5 and enables automatic installation for
+  upgraded dedicated servers.
+
 ## 0.1.0-alpha.4
 
 - Adds the first per-player Kanto story from Professor Oak through Brock.

@@ -4,6 +4,7 @@ import com.andrewbristowx.emiprogresion.command.EmiProgresionCommand;
 import com.andrewbristowx.emiprogresion.config.EmiProgresionConfig;
 import com.andrewbristowx.emiprogresion.network.StoryNetworking;
 import com.andrewbristowx.emiprogresion.region.AdventureRegionService;
+import com.andrewbristowx.emiprogresion.region.KantoMapInstaller;
 import com.andrewbristowx.emiprogresion.story.StoryService;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -25,9 +26,18 @@ public final class EmiProgresion implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 EmiProgresionCommand.register(dispatcher)
         );
+        ServerLifecycleEvents.SERVER_STARTING.register(KantoMapInstaller::onServerStarting);
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             AdventureRegionService.onServerStarted(server);
             StoryService.onServerStarted(server);
+            if (EmiProgresionConfig.get().storyEnabled
+                    && !EmiProgresionConfig.get().storyNpcSetupComplete) {
+                var kanto = AdventureRegionService.getLevel(server, EmiProgresionConfig.get().kantoWorld);
+                if (kanto != null && AdventureRegionService.hasWildKantoSignature(kanto)) {
+                    StoryService.SetupResult result = StoryService.setupNpcs(server);
+                    LOGGER.info("Automatic Kanto NPC setup: {}/{} - {}", result.spawned(), result.expected(), result.message());
+                }
+            }
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> StoryService.onServerStopping());
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -35,6 +45,6 @@ public final class EmiProgresion implements ModInitializer {
             StoryService.tick(server);
         });
 
-        LOGGER.info("EmiProgresion 0.1.0-alpha.4 enabled: Kanto story through Brock.");
+        LOGGER.info("EmiProgresion 0.1.0-alpha.5 enabled: automatic Wild Kanto installation and story through Brock.");
     }
 }
