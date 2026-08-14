@@ -3,7 +3,6 @@ package com.andrewbristowx.emiprogresion.region;
 import com.andrewbristowx.emiprogresion.EmiProgresion;
 import com.andrewbristowx.emiprogresion.config.EmiProgresionConfig;
 import net.minecraft.ChatFormatting;
-import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -13,11 +12,12 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.phys.Vec3;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,7 +29,12 @@ public final class AdventureRegionService {
 
     public static void onServerStarted(MinecraftServer server) {
         applyKantoBorder(server);
-        EmiProgresion.LOGGER.info("Kanto adventure dimension: {}", EmiProgresionConfig.get().kantoWorld);
+        EmiProgresionConfig config = EmiProgresionConfig.get();
+        ServerLevel kanto = getLevel(server, config.kantoWorld);
+        if (kanto != null && config.requireWildKantoMap && !hasWildKantoSignature(kanto)) {
+            EmiProgresion.LOGGER.warn("Wild Kanto 1-00-02 map signature was not found in {}. Kanto entry is locked.", config.kantoWorld);
+        }
+        EmiProgresion.LOGGER.info("Kanto map-test dimension: {}", config.kantoWorld);
     }
 
     public static void tick(MinecraftServer server) {
@@ -42,10 +47,12 @@ public final class AdventureRegionService {
 
         for (ServerPlayer player : kanto.players()) {
             if (INTRO_SHOWN.add(player.getUUID())) {
-                player.sendSystemMessage(Component.literal("✦ AVENTURA DE KANTO ✦")
+                player.sendSystemMessage(Component.literal("✦ PRUEBA DEL MAPA DE KANTO ✦")
                         .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
-                player.sendSystemMessage(Component.literal("Pueblo inicial → Ruta 1 → Brock. Sigue hacia Z +" + config.brockZ + ".")
+                player.sendSystemMessage(Component.literal("Explora y reporta cortes de terreno, edificios incompletos o zonas inaccesibles.")
                         .withStyle(ChatFormatting.GRAY));
+                player.sendSystemMessage(Component.literal("Los gimnasios del mundo normal son opcionales; la campaña oficial se validará únicamente aquí.")
+                        .withStyle(ChatFormatting.YELLOW));
             }
         }
     }
@@ -63,146 +70,127 @@ public final class AdventureRegionService {
         if (kanto == null) return;
 
         WorldBorder border = kanto.getWorldBorder();
-        border.setCenter(config.kantoSpawnX, config.kantoSpawnZ);
+        border.setCenter(config.kantoBorderCenterX, config.kantoBorderCenterZ);
         border.setSize(config.kantoWorldBorderDiameter);
     }
 
     public static boolean enterKanto(ServerPlayer player) {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        ServerLevel kanto = getLevel(player.server, c.kantoWorld);
+        EmiProgresionConfig config = EmiProgresionConfig.get();
+        ServerLevel kanto = getLevel(player.server, config.kantoWorld);
         if (kanto == null) {
-            player.sendSystemMessage(Component.literal("No se encontró la dimensión Kanto: " + c.kantoWorld)
+            player.sendSystemMessage(Component.literal("No se encontró la dimensión Kanto: " + config.kantoWorld)
                     .withStyle(ChatFormatting.RED));
             return false;
         }
 
-        BlockPos safe = findSafeSurface(kanto, c.kantoSpawnX, c.kantoSpawnZ);
-        player.teleportTo(kanto, safe.getX() + 0.5D, safe.getY(), safe.getZ() + 0.5D,
+        if (config.requireWildKantoMap && !hasWildKantoSignature(kanto)) {
+            player.sendSystemMessage(Component.literal("Kanto bloqueado: no se detectó el mapa Wild Kanto limpio en la dimensión.")
+                    .withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
+            player.sendSystemMessage(Component.literal("Importa region, entities y poi, reinicia el servidor y ejecuta /emiprogresion validate.")
+                    .withStyle(ChatFormatting.YELLOW));
+            return false;
+        }
+
+        Optional<BlockPos> safe = findSafeNearExpectedY(
+                kanto, config.kantoSpawnX, config.kantoSpawnY, config.kantoSpawnZ, 12
+        );
+        if (safe.isEmpty()) {
+            player.sendSystemMessage(Component.literal("Kanto bloqueado: el spawn esperado del mapa no es seguro cerca de Y=" + config.kantoSpawnY + ".")
+                    .withStyle(ChatFormatting.RED));
+            player.sendSystemMessage(Component.literal("No se usará la bedrock como alternativa. Ejecuta /emiprogresion validate.")
+                    .withStyle(ChatFormatting.YELLOW));
+            return false;
+        }
+
+        BlockPos destination = safe.get();
+        player.teleportTo(kanto, destination.getX() + 0.5D, destination.getY(), destination.getZ() + 0.5D,
                 player.getYRot(), player.getXRot());
 
-        if (c.autoSetKantoSeriesOnEnter) {
+        if (config.autoSetKantoSeriesOnEnter) {
             activateKantoSeries(player);
         }
 
-        player.sendSystemMessage(Component.literal("Has entrado a Kanto en superficie segura Y=" + safe.getY()
-                        + ". Brock está aproximadamente en Z +" + c.brockZ + ".")
+        player.sendSystemMessage(Component.literal("Has entrado al mapa de Kanto en "
+                        + destination.getX() + " " + destination.getY() + " " + destination.getZ() + ".")
                 .withStyle(ChatFormatting.GREEN));
         return true;
     }
 
     public static boolean leaveKanto(ServerPlayer player) {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        ServerLevel main = getLevel(player.server, c.mainWorld);
+        EmiProgresionConfig config = EmiProgresionConfig.get();
+        ServerLevel main = getLevel(player.server, config.mainWorld);
         if (main == null) {
-            player.sendSystemMessage(Component.literal("No se encontró el mundo principal: " + c.mainWorld)
+            player.sendSystemMessage(Component.literal("No se encontró el mundo principal: " + config.mainWorld)
                     .withStyle(ChatFormatting.RED));
             return false;
         }
 
-        BlockPos preferred = new BlockPos(c.mainSpawnX, c.mainSpawnY, c.mainSpawnZ);
+        BlockPos preferred = new BlockPos(config.mainSpawnX, config.mainSpawnY, config.mainSpawnZ);
         BlockPos destination = isSafeStandPosition(main, preferred)
                 ? preferred
-                : findSafeSurface(main, c.mainSpawnX, c.mainSpawnZ);
+                : findSafeSurface(main, config.mainSpawnX, config.mainSpawnZ);
         player.teleportTo(main, destination.getX() + 0.5D, destination.getY(), destination.getZ() + 0.5D,
                 player.getYRot(), player.getXRot());
         return true;
     }
 
-    public static boolean teleportToKantoPoint(ServerPlayer player, int x, int z) {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        ServerLevel kanto = getLevel(player.server, c.kantoWorld);
-        if (kanto == null) return false;
-
-        BlockPos safe = findSafeSurface(kanto, x, z);
-        player.teleportTo(kanto, safe.getX() + 0.5D, safe.getY(), safe.getZ() + 0.5D,
-                player.getYRot(), player.getXRot());
-        player.sendSystemMessage(Component.literal("TP seguro: " + safe.getX() + " " + safe.getY() + " " + safe.getZ())
-                .withStyle(ChatFormatting.GRAY));
-        return true;
+    /**
+     * Signature for the unmodified terrain around the Wild Kanto 1-00-02 spawn.
+     * These blocks are deliberately not touched by the cleaner.
+     */
+    public static boolean hasWildKantoSignature(ServerLevel level) {
+        return level.getBlockState(new BlockPos(87, 73, 130)).is(Blocks.STONE_BRICKS)
+                && level.getBlockState(new BlockPos(80, 73, 133)).is(Blocks.MOSSY_COBBLESTONE)
+                && level.getBlockState(new BlockPos(91, 73, 133)).is(Blocks.GRASS_BLOCK);
     }
 
-    public static int setupPrototype(CommandSourceStack source) {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        ServerLevel kanto = getLevel(source.getServer(), c.kantoWorld);
-        if (kanto == null) {
-            source.sendFailure(Component.literal("No existe la dimensión Kanto: " + c.kantoWorld));
-            return 0;
-        }
-
-        int ashY = structureSurfaceY(kanto, c.ashX, c.ashZ);
-        int brockY = structureSurfaceY(kanto, c.brockX, c.brockZ);
-
-        int ash = placeStructure(source, c.ashStructureId, c.ashX, ashY, c.ashZ);
-        int brock = placeStructure(source, c.brockStructureId, c.brockX, brockY, c.brockZ);
-        applyKantoBorder(source.getServer());
-
-        if (ash > 0) {
-            source.sendSuccess(() -> Component.literal("Ash colocado en superficie: " + c.ashX + " " + ashY + " " + c.ashZ)
-                    .withStyle(ChatFormatting.GREEN), false);
-        }
-        if (brock > 0) {
-            source.sendSuccess(() -> Component.literal("Brock colocado en superficie: " + c.brockX + " " + brockY + " " + c.brockZ)
-                    .withStyle(ChatFormatting.GREEN), false);
-        }
-        return (ash > 0 ? 1 : 0) + (brock > 0 ? 1 : 0);
+    public static Optional<BlockPos> getSafeKantoSpawn(ServerLevel level) {
+        EmiProgresionConfig config = EmiProgresionConfig.get();
+        return findSafeNearExpectedY(level, config.kantoSpawnX, config.kantoSpawnY, config.kantoSpawnZ, 12);
     }
 
-    public static int placeStructureAtSurface(CommandSourceStack source, String structureId, int x, int z) {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        ServerLevel kanto = getLevel(source.getServer(), c.kantoWorld);
-        if (kanto == null) return 0;
-        int y = structureSurfaceY(kanto, x, z);
-        return placeStructure(source, structureId, x, y, z);
-    }
-
-    public static int placeStructure(CommandSourceStack source, String structureId, int x, int y, int z) {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        ServerLevel kanto = getLevel(source.getServer(), c.kantoWorld);
-        if (kanto == null || structureId == null || structureId.isBlank()) return 0;
-
-        CommandSourceStack target = source.withLevel(kanto).withPosition(new Vec3(x + 0.5D, y, z + 0.5D));
-        String command = "place structure " + structureId + " " + x + " " + y + " " + z;
-        source.getServer().getCommands().performPrefixedCommand(target, command);
-        return 1;
-    }
-
-    public static int getSurfaceY(ServerLevel level, int x, int z) {
-        return structureSurfaceY(level, x, z);
+    public static boolean isInsideGeneratedRectangle(BlockPos pos) {
+        EmiProgresionConfig config = EmiProgresionConfig.get();
+        return pos.getX() >= config.kantoGeneratedMinX && pos.getX() <= config.kantoGeneratedMaxX
+                && pos.getZ() >= config.kantoGeneratedMinZ && pos.getZ() <= config.kantoGeneratedMaxZ;
     }
 
     public static boolean isKanto(ServerLevel level) {
         return level.dimension().location().toString().equals(EmiProgresionConfig.get().kantoWorld);
     }
 
-    public static boolean isInsideBrockProtection(BlockPos pos) {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        long dx = pos.getX() - c.brockX;
-        long dz = pos.getZ() - c.brockZ;
-        return dx * dx + dz * dz <= (long) c.brockProtectionRadius * c.brockProtectionRadius;
-    }
+    private static Optional<BlockPos> findSafeNearExpectedY(ServerLevel level, int x, int expectedY, int z, int radius) {
+        int minY = Math.max(level.getMinBuildHeight() + 1, expectedY - radius);
+        int maxY = Math.min(level.getMaxBuildHeight() - 2, expectedY + radius);
 
-    private static int structureSurfaceY(ServerLevel level, int x, int z) {
-        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
-        return Math.max(level.getMinBuildHeight() + 2, Math.min(y, level.getMaxBuildHeight() - 3));
+        BlockPos expected = new BlockPos(x, expectedY, z);
+        if (isSafeStandPosition(level, expected)) return Optional.of(expected);
+
+        for (int offset = 1; offset <= radius; offset++) {
+            int above = expectedY + offset;
+            if (above <= maxY) {
+                BlockPos candidate = new BlockPos(x, above, z);
+                if (isSafeStandPosition(level, candidate)) return Optional.of(candidate);
+            }
+            int below = expectedY - offset;
+            if (below >= minY) {
+                BlockPos candidate = new BlockPos(x, below, z);
+                if (isSafeStandPosition(level, candidate)) return Optional.of(candidate);
+            }
+        }
+        return Optional.empty();
     }
 
     private static BlockPos findSafeSurface(ServerLevel level, int x, int z) {
-        int baseY = structureSurfaceY(level, x, z);
+        int baseY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
         BlockPos candidate = new BlockPos(x, baseY, z);
         if (isSafeStandPosition(level, candidate)) return candidate;
 
-        int maxY = Math.min(level.getMaxBuildHeight() - 3, baseY + 12);
+        int maxY = Math.min(level.getMaxBuildHeight() - 2, baseY + 12);
         for (int y = baseY + 1; y <= maxY; y++) {
             candidate = new BlockPos(x, y, z);
             if (isSafeStandPosition(level, candidate)) return candidate;
         }
-
-        int minY = Math.max(level.getMinBuildHeight() + 2, baseY - 24);
-        for (int y = baseY - 1; y >= minY; y--) {
-            candidate = new BlockPos(x, y, z);
-            if (isSafeStandPosition(level, candidate)) return candidate;
-        }
-
         return new BlockPos(x, baseY, z);
     }
 

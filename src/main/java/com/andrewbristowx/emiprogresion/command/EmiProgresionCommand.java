@@ -22,20 +22,9 @@ public final class EmiProgresionCommand {
                         .then(Commands.literal("setup")
                                 .requires(s -> s.hasPermission(2))
                                 .executes(ctx -> setupKanto(ctx.getSource())))
-                        .then(Commands.literal("ash")
-                                .then(Commands.literal("tp")
-                                        .requires(s -> s.hasPermission(2))
-                                        .executes(ctx -> tpAsh(ctx.getSource())))
-                                .then(Commands.literal("place")
-                                        .requires(s -> s.hasPermission(2))
-                                        .executes(ctx -> placeAsh(ctx.getSource()))))
-                        .then(Commands.literal("brock")
-                                .then(Commands.literal("tp")
-                                        .requires(s -> s.hasPermission(2))
-                                        .executes(ctx -> tpBrock(ctx.getSource())))
-                                .then(Commands.literal("place")
-                                        .requires(s -> s.hasPermission(2))
-                                        .executes(ctx -> placeBrock(ctx.getSource())))))
+                        .then(Commands.literal("mapcheck")
+                                .requires(s -> s.hasPermission(2))
+                                .executes(ctx -> validate(ctx.getSource()))))
                 .then(Commands.literal("setspawn")
                         .requires(s -> s.hasPermission(2))
                         .executes(ctx -> setSpawn(ctx.getSource())))
@@ -48,32 +37,31 @@ public final class EmiProgresionCommand {
     }
 
     private static int status(CommandSourceStack source) {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        source.sendSuccess(() -> Component.literal("✦ EmiProgresion • Kanto hasta Brock ✦")
+        EmiProgresionConfig config = EmiProgresionConfig.get();
+        source.sendSuccess(() -> Component.literal("✦ EmiProgresion • Wild Kanto map test ✦")
                 .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), false);
-        source.sendSuccess(() -> Component.literal("Mundo principal: " + c.mainWorld
-                        + " • Spawn protegido: " + c.protectedSpawnRadius + "b • Casas: hasta " + c.housingRadius + "b")
+        source.sendSuccess(() -> Component.literal("Mundo principal: " + config.mainWorld
+                        + " • Spawn protegido: " + config.protectedSpawnRadius + "b • Casas: hasta " + config.housingRadius + "b")
                 .withStyle(ChatFormatting.GRAY), false);
-        source.sendSuccess(() -> Component.literal("Aventura: " + c.kantoWorld
-                        + " • Border: " + c.kantoWorldBorderDiameter + "b")
-                .withStyle(ChatFormatting.GRAY), false);
-        source.sendSuccess(() -> Component.literal("Ash: " + c.ashStructureId + " @ X/Z " + c.ashX + "," + c.ashZ
-                        + " • Brock: " + c.brockStructureId + " @ X/Z " + c.brockX + "," + c.brockZ)
-                .withStyle(ChatFormatting.YELLOW), false);
-        source.sendSuccess(() -> Component.literal("Altura Y: automática según la superficie real del mundo Kanto.")
+        source.sendSuccess(() -> Component.literal("Mapa aventura: " + config.kantoWorld
+                        + " • Spawn: " + config.kantoSpawnX + " " + config.kantoSpawnY + " " + config.kantoSpawnZ)
                 .withStyle(ChatFormatting.GREEN), false);
+        source.sendSuccess(() -> Component.literal("Gimnasios naturales: permitidos en el mundo normal, fuera de la campaña oficial.")
+                .withStyle(ChatFormatting.YELLOW), false);
         return 1;
     }
 
     private static int layout(CommandSourceStack source) {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        source.sendSuccess(() -> Component.literal("Mundo principal: núcleo personalizado 0-" + c.protectedSpawnRadius
-                        + "b; viviendas/comunidad hasta " + c.housingRadius + "b.")
+        EmiProgresionConfig config = EmiProgresionConfig.get();
+        source.sendSuccess(() -> Component.literal("Mundo principal: núcleo personalizado 0-" + config.protectedSpawnRadius
+                        + "b; viviendas/comunidad hasta " + config.housingRadius + "b.")
                 .withStyle(ChatFormatting.YELLOW), false);
-        source.sendSuccess(() -> Component.literal("Mundo aventura: Ash/Pueblo inicial → Ruta 1 (hasta Z "
-                        + c.route1EndZ + ") → Brock (Z " + c.brockZ + ").")
+        source.sendSuccess(() -> Component.literal("Wild Kanto completamente generado: X "
+                        + config.kantoGeneratedMinX + ".." + config.kantoGeneratedMaxX + " • Z "
+                        + config.kantoGeneratedMinZ + ".." + config.kantoGeneratedMaxZ + ".")
                 .withStyle(ChatFormatting.GREEN), false);
-        source.sendSuccess(() -> Component.literal("Los puntos de campaña usan altura automática; no se usa Y fija.")
+        source.sendSuccess(() -> Component.literal("Border provisional: centro " + config.kantoBorderCenterX + ","
+                        + config.kantoBorderCenterZ + " • diámetro " + config.kantoWorldBorderDiameter + "b.")
                 .withStyle(ChatFormatting.GRAY), false);
         return 1;
     }
@@ -89,83 +77,54 @@ public final class EmiProgresionCommand {
     }
 
     private static int setupKanto(CommandSourceStack source) {
-        int placed = AdventureRegionService.setupPrototype(source);
-        if (placed == 2) {
-            source.sendSuccess(() -> Component.literal("✓ Prototipo Kanto enviado: Ash + Brock sobre la superficie real.")
-                    .withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD), true);
-            return 1;
-        }
-        source.sendFailure(Component.literal("No se pudieron enviar las dos colocaciones. Revisa la consola y /emiprogresion validate."));
-        return 0;
-    }
-
-    private static int tpAsh(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        return AdventureRegionService.teleportToKantoPoint(source.getPlayerOrException(), c.ashX, c.ashZ) ? 1 : 0;
-    }
-
-    private static int placeAsh(CommandSourceStack source) {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        int result = AdventureRegionService.placeStructureAtSurface(source, c.ashStructureId, c.ashX, c.ashZ);
-        if (result > 0) source.sendSuccess(() -> Component.literal("✓ Estructura de Ash enviada a la superficie real.").withStyle(ChatFormatting.GREEN), true);
-        else source.sendFailure(Component.literal("No se pudo colocar " + c.ashStructureId));
-        return result > 0 ? 1 : 0;
-    }
-
-    private static int tpBrock(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        return AdventureRegionService.teleportToKantoPoint(source.getPlayerOrException(), c.brockX, c.brockZ) ? 1 : 0;
-    }
-
-    private static int placeBrock(CommandSourceStack source) {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        int result = AdventureRegionService.placeStructureAtSurface(source, c.brockStructureId, c.brockX, c.brockZ);
-        if (result > 0) source.sendSuccess(() -> Component.literal("✓ Gimnasio de Brock enviado a la superficie real; trainer id " + c.brockTrainerId + ".")
+        AdventureRegionService.applyKantoBorder(source.getServer());
+        source.sendSuccess(() -> Component.literal("Border provisional aplicado. No se colocó ni reemplazó ninguna estructura del mapa.")
                 .withStyle(ChatFormatting.GREEN), true);
-        else source.sendFailure(Component.literal("No se pudo colocar " + c.brockStructureId));
-        return result > 0 ? 1 : 0;
+        return validate(source);
     }
 
     private static int setSpawn(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        c.mainWorld = player.serverLevel().dimension().location().toString();
-        c.mainSpawnX = player.getBlockX();
-        c.mainSpawnY = player.getBlockY();
-        c.mainSpawnZ = player.getBlockZ();
+        EmiProgresionConfig config = EmiProgresionConfig.get();
+        config.mainWorld = player.serverLevel().dimension().location().toString();
+        config.mainSpawnX = player.getBlockX();
+        config.mainSpawnY = player.getBlockY();
+        config.mainSpawnZ = player.getBlockZ();
         EmiProgresionConfig.save();
-        source.sendSuccess(() -> Component.literal("✓ Spawn principal guardado en " + c.mainWorld + " "
-                        + c.mainSpawnX + ", " + c.mainSpawnY + ", " + c.mainSpawnZ)
+        source.sendSuccess(() -> Component.literal("✓ Spawn principal guardado en " + config.mainWorld + " "
+                        + config.mainSpawnX + ", " + config.mainSpawnY + ", " + config.mainSpawnZ)
                 .withStyle(ChatFormatting.GREEN), true);
         return 1;
     }
 
     private static int validate(CommandSourceStack source) {
-        EmiProgresionConfig c = EmiProgresionConfig.get();
-        var kanto = AdventureRegionService.getLevel(source.getServer(), c.kantoWorld);
-        boolean kantoExists = kanto != null;
-        boolean idsOk = "cobbleverse:ash".equals(c.ashStructureId)
-                && "cobbleverse:brock".equals(c.brockStructureId)
-                && "kanto_brock".equals(c.brockTrainerId);
+        EmiProgresionConfig config = EmiProgresionConfig.get();
+        var kanto = AdventureRegionService.getLevel(source.getServer(), config.kantoWorld);
+        boolean dimensionExists = kanto != null;
+        boolean signatureFound = dimensionExists && AdventureRegionService.hasWildKantoSignature(kanto);
+        boolean safeSpawn = dimensionExists && AdventureRegionService.getSafeKantoSpawn(kanto).isPresent();
+        boolean spawnInsideGeneratedMap = AdventureRegionService.isInsideGeneratedRectangle(
+                new net.minecraft.core.BlockPos(config.kantoSpawnX, config.kantoSpawnY, config.kantoSpawnZ)
+        );
 
-        source.sendSuccess(() -> Component.literal("Validación Kanto alpha.2:")
+        source.sendSuccess(() -> Component.literal("Validación Wild Kanto alpha.3:")
                 .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), false);
-        source.sendSuccess(() -> Component.literal((kantoExists ? "✓ " : "✕ ") + "Dimensión Kanto: " + c.kantoWorld)
-                .withStyle(kantoExists ? ChatFormatting.GREEN : ChatFormatting.RED), false);
-        source.sendSuccess(() -> Component.literal((idsOk ? "✓ " : "✕ ")
-                        + "IDs Cobbleverse confirmados: Ash/Brock/kanto_brock")
-                .withStyle(idsOk ? ChatFormatting.GREEN : ChatFormatting.RED), false);
-        if (kanto != null) {
-            int ashY = AdventureRegionService.getSurfaceY(kanto, c.ashX, c.ashZ);
-            int brockY = AdventureRegionService.getSurfaceY(kanto, c.brockX, c.brockZ);
-            source.sendSuccess(() -> Component.literal("✓ Superficie detectada: Ash Y=" + ashY + " • Brock Y=" + brockY)
-                    .withStyle(ChatFormatting.GREEN), false);
-        }
-        source.sendSuccess(() -> Component.literal("✓ Border previsto: " + c.kantoWorldBorderDiameter + " bloques")
+        validationLine(source, dimensionExists, "Dimensión Kanto: " + config.kantoWorld);
+        validationLine(source, signatureFound, "Firma del mapa Wild Kanto 1-00-02");
+        validationLine(source, safeSpawn, "Spawn seguro cerca de " + config.kantoSpawnX + " "
+                + config.kantoSpawnY + " " + config.kantoSpawnZ);
+        validationLine(source, spawnInsideGeneratedMap, "Spawn dentro del rectángulo completamente generado");
+        source.sendSuccess(() -> Component.literal("✓ No se bloquean los gimnasios naturales del mundo normal.")
                 .withStyle(ChatFormatting.GREEN), false);
-        source.sendSuccess(() -> Component.literal("⚠ Bloqueo de gimnasios aleatorios del mundo normal sigue en validación; no pregeneres todavía.")
+        source.sendSuccess(() -> Component.literal("ℹ Esta alpha prueba limpieza, terreno y acceso; las recompensas oficiales aún no están activadas.")
                 .withStyle(ChatFormatting.YELLOW), false);
-        return kantoExists && idsOk ? 1 : 0;
+
+        return dimensionExists && signatureFound && safeSpawn && spawnInsideGeneratedMap ? 1 : 0;
+    }
+
+    private static void validationLine(CommandSourceStack source, boolean ok, String text) {
+        source.sendSuccess(() -> Component.literal((ok ? "✓ " : "✕ ") + text)
+                .withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.RED), false);
     }
 
     private static int reload(CommandSourceStack source) {
