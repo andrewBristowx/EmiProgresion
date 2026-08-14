@@ -24,6 +24,6 @@ public final class EmiProgresion implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(AdventureRegionService::onServerStarted);
         ServerTickEvents.END_SERVER_TICK.register(AdventureRegionService::tick);
 
-        LOGGER.info("EmiProgresion 0.1.0-alpha.2 enabled: safe-surface Kanto prototype from Ash to Brock.");
+        LOGGER.info("EmiProgresion 0.1.0-alpha.3 enabled: cleaned Wild Kanto map-test mode.");
     }
 }

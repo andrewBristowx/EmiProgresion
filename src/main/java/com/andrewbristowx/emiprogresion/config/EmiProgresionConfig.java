@@ -12,9 +12,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class EmiProgresionConfig {
+    private static final int CURRENT_CONFIG_VERSION = 3;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("emiprogresion.json");
     private static EmiProgresionConfig INSTANCE = new EmiProgresionConfig();
+
+    public int configVersion = 0;
 
     public String mainWorld = "minecraft:overworld";
     public String kantoWorld = "emiprogresion:kanto";
@@ -25,30 +28,24 @@ public final class EmiProgresionConfig {
     public int protectedSpawnRadius = 300;
     public int housingRadius = 1000;
 
+    /** Wild Kanto 1-00-02 cleaned map defaults. */
     public boolean adventurePrototypeEnabled = true;
-    public int kantoWorldBorderDiameter = 8000;
-    public int kantoSpawnX = 0;
-    public int kantoSpawnZ = 0;
+    public boolean requireWildKantoMap = true;
+    public int kantoSpawnX = 87;
+    public int kantoSpawnY = 74;
+    public int kantoSpawnZ = 130;
+    public int kantoBorderCenterX = 1288;
+    public int kantoBorderCenterZ = -248;
+    public int kantoWorldBorderDiameter = 5600;
 
-    public int route1EndX = 0;
-    public int route1EndZ = 900;
+    /** Rectangle containing only chunks with full terrain status in the source map. */
+    public int kantoGeneratedMinX = -1520;
+    public int kantoGeneratedMaxX = 4095;
+    public int kantoGeneratedMinZ = -2416;
+    public int kantoGeneratedMaxZ = 1919;
 
-    public int ashX = 0;
-    public int ashY = 64;
-    public int ashZ = 0;
-    public String ashStructureId = "cobbleverse:ash";
-    public String ashTrainerId = "pallet_ash";
-
-    public int brockX = 0;
-    public int brockY = 64;
-    public int brockZ = 1250;
-    public int brockProtectionRadius = 64;
-    public String brockStructureId = "cobbleverse:brock";
-    public String brockTrainerId = "kanto_brock";
-
-    public boolean autoSetKantoSeriesOnEnter = true;
+    public boolean autoSetKantoSeriesOnEnter = false;
     public boolean preventBuildingInKanto = false;
-    public boolean preventRandomKantoStoryStructures = true;
     public boolean requireBrockBeforeLeavingPrototype = false;
 
     public static EmiProgresionConfig get() {
@@ -77,15 +74,40 @@ public final class EmiProgresionConfig {
     private void normalize() {
         if (mainWorld == null || mainWorld.isBlank()) mainWorld = "minecraft:overworld";
         if (kantoWorld == null || kantoWorld.isBlank()) kantoWorld = "emiprogresion:kanto";
-        if (ashStructureId == null || ashStructureId.isBlank()) ashStructureId = "cobbleverse:ash";
-        if (brockStructureId == null || brockStructureId.isBlank()) brockStructureId = "cobbleverse:brock";
-        if (ashTrainerId == null || ashTrainerId.isBlank()) ashTrainerId = "pallet_ash";
-        if (brockTrainerId == null || brockTrainerId.isBlank()) brockTrainerId = "kanto_brock";
+
+        // Alpha.2 generated coordinates for an empty noise world. Migrate old configs
+        // to the imported Wild Kanto map instead of keeping the unsafe Y=-64 fallback.
+        if (configVersion < CURRENT_CONFIG_VERSION) {
+            requireWildKantoMap = true;
+            kantoSpawnX = 87;
+            kantoSpawnY = 74;
+            kantoSpawnZ = 130;
+            kantoBorderCenterX = 1288;
+            kantoBorderCenterZ = -248;
+            kantoWorldBorderDiameter = 5600;
+            kantoGeneratedMinX = -1520;
+            kantoGeneratedMaxX = 4095;
+            kantoGeneratedMinZ = -2416;
+            kantoGeneratedMaxZ = 1919;
+            autoSetKantoSeriesOnEnter = false;
+            configVersion = CURRENT_CONFIG_VERSION;
+        }
 
         protectedSpawnRadius = clamp(protectedSpawnRadius, 32, 1000);
         housingRadius = clamp(housingRadius, protectedSpawnRadius, 4000);
+        kantoSpawnY = clamp(kantoSpawnY, -62, 317);
         kantoWorldBorderDiameter = clamp(kantoWorldBorderDiameter, 1000, 30000);
-        brockProtectionRadius = clamp(brockProtectionRadius, 24, 256);
+
+        if (kantoGeneratedMinX > kantoGeneratedMaxX) {
+            int value = kantoGeneratedMinX;
+            kantoGeneratedMinX = kantoGeneratedMaxX;
+            kantoGeneratedMaxX = value;
+        }
+        if (kantoGeneratedMinZ > kantoGeneratedMaxZ) {
+            int value = kantoGeneratedMinZ;
+            kantoGeneratedMinZ = kantoGeneratedMaxZ;
+            kantoGeneratedMaxZ = value;
+        }
     }
 
     private static int clamp(int value, int min, int max) {
