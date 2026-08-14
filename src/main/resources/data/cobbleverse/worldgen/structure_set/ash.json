@@ -1,0 +1,12 @@
+{
+  "structures": [{"structure": "cobbleverse:ash", "weight": 1}],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 120,
+    "separation": 60,
+    "spread_type": "triangular",
+    "salt": 3850,
+    "frequency_reduction_method": "legacy_type_3",
+    "frequency": 0.0
+  }
+}

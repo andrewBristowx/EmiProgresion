@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "emiprogresion",
+  "version": "${version}",
+  "name": "EmiProgresion",
+  "description": "Server-side Kanto progression and region-management mod for Emipokemon.",
+  "authors": ["andrewBristowx"],
+  "environment": "server",
+  "entrypoints": {
+    "main": ["com.andrewbristowx.emiprogresion.EmiProgresion"]
+  },
+  "depends": {
+    "fabricloader": ">=0.17.2",
+    "minecraft": "1.21.1",
+    "java": ">=21",
+    "fabric-api": "*",
+    "cobblemon": ">=1.7.3"
+  }
+}
