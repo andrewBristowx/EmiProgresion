@@ -6,6 +6,7 @@ import com.andrewbristowx.emiprogresion.network.StoryNetworking;
 import com.andrewbristowx.emiprogresion.region.AdventureRegionService;
 import com.andrewbristowx.emiprogresion.region.KantoMapInstaller;
 import com.andrewbristowx.emiprogresion.story.StoryService;
+import com.andrewbristowx.emiprogresion.story.TravelStopBlocks;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -20,6 +21,7 @@ public final class EmiProgresion implements ModInitializer {
     @Override
     public void onInitialize() {
         EmiProgresionConfig.load();
+        TravelStopBlocks.register();
         StoryNetworking.initialize();
         StoryService.initializeEvents();
 
@@ -37,6 +39,6 @@ public final class EmiProgresion implements ModInitializer {
             StoryService.tick(server);
         });
 
-        LOGGER.info("EmiProgresion 0.1.0-alpha.5.4 enabled: removes invalid legacy Brock entities by RCT entity type.");
+        LOGGER.info("EmiProgresion full Kanto placement catalogue enabled.");
     }
 }

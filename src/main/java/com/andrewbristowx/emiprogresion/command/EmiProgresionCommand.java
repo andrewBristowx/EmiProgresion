@@ -4,8 +4,12 @@ import com.andrewbristowx.emiprogresion.config.EmiProgresionConfig;
 import com.andrewbristowx.emiprogresion.region.AdventureRegionService;
 import com.andrewbristowx.emiprogresion.region.KantoMapInstaller;
 import com.andrewbristowx.emiprogresion.story.StoryService;
+import com.andrewbristowx.emiprogresion.story.StoryPlacementService;
+import com.andrewbristowx.emiprogresion.story.KantoStoryCatalog;
 import net.fabricmc.loader.api.FabricLoader;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -48,6 +52,54 @@ public final class EmiProgresionCommand {
                                 .then(Commands.literal("giovanni_gate").executes(ctx -> setAnchor(ctx.getSource(), "giovanni_gate")))
                                 .then(Commands.literal("brock").executes(ctx -> setAnchor(ctx.getSource(), "brock")))
                                 .then(Commands.literal("route3_gate").executes(ctx -> setAnchor(ctx.getSource(), "route3_gate")))))
+                .then(Commands.literal("admin").requires(s -> s.hasPermission(2))
+                        .then(Commands.literal("on").executes(ctx -> adminMode(ctx.getSource(), true)))
+                        .then(Commands.literal("off").executes(ctx -> adminMode(ctx.getSource(), false)))
+                        .then(Commands.literal("status").executes(ctx -> adminStatus(ctx.getSource()))))
+                .then(Commands.literal("colocar").requires(s -> s.hasPermission(2))
+                        .then(Commands.literal("npc")
+                                .then(Commands.argument("id", StringArgumentType.word())
+                                        .executes(ctx -> placement(ctx.getSource(), StoryPlacementService.placeNpc(
+                                                ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "id"))))))
+                        .then(Commands.literal("entrenador")
+                                .then(Commands.argument("zona", StringArgumentType.word())
+                                        .executes(ctx -> placement(ctx.getSource(), StoryPlacementService.placeNextRouteTrainer(
+                                                ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "zona"))))))
+                        .then(Commands.literal("gimnasio")
+                                .then(Commands.argument("numero", IntegerArgumentType.integer(1, 8))
+                                        .then(Commands.literal("entrenador").executes(ctx -> placement(ctx.getSource(),
+                                                StoryPlacementService.placeNextGymTrainer(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "numero")))))
+                                        .then(Commands.literal("lider").executes(ctx -> placement(ctx.getSource(),
+                                                StoryPlacementService.placeGymLeader(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "numero")))))
+                                        .then(Commands.literal("entrada").executes(ctx -> placement(ctx.getSource(),
+                                                StoryPlacementService.placeGymGate(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "numero")))))))
+                        .then(Commands.literal("jefe")
+                                .then(Commands.argument("id", StringArgumentType.word())
+                                        .executes(ctx -> placement(ctx.getSource(), StoryPlacementService.placeBoss(
+                                                ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "id"))))))
+                        .then(Commands.literal("alto_mando")
+                                .then(Commands.argument("numero", IntegerArgumentType.integer(1, 4))
+                                        .executes(ctx -> placement(ctx.getSource(), StoryPlacementService.placeLeague(
+                                                ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "numero"))))))
+                        .then(Commands.literal("campeon").executes(ctx -> placement(ctx.getSource(),
+                                StoryPlacementService.placeLeague(ctx.getSource().getPlayerOrException(), 5))))
+                        .then(Commands.literal("pokeparada").executes(ctx -> placement(ctx.getSource(),
+                                StoryPlacementService.placePokestop(ctx.getSource().getPlayerOrException()))))
+                        .then(Commands.literal("terminal")
+                                .then(Commands.argument("nombre", StringArgumentType.greedyString())
+                                        .executes(ctx -> placement(ctx.getSource(), StoryPlacementService.placeTerminal(
+                                                ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "nombre")))))))
+                .then(Commands.literal("montaje").requires(s -> s.hasPermission(2))
+                        .then(Commands.literal("lista").executes(ctx -> placementList(ctx.getSource())))
+                        .then(Commands.literal("catalogo").executes(ctx -> catalogue(ctx.getSource())))
+                        .then(Commands.literal("validar").executes(ctx -> placementValidate(ctx.getSource())))
+                        .then(Commands.literal("reconstruir").executes(ctx -> placementSetup(ctx.getSource())))
+                        .then(Commands.literal("deshacer").executes(ctx -> placement(ctx.getSource(),
+                                StoryPlacementService.undo(ctx.getSource().getPlayerOrException()))))
+                        .then(Commands.literal("mover_cercano").executes(ctx -> placement(ctx.getSource(),
+                                StoryPlacementService.moveNearest(ctx.getSource().getPlayerOrException()))))
+                        .then(Commands.literal("eliminar_cercano").executes(ctx -> placement(ctx.getSource(),
+                                StoryPlacementService.removeNearest(ctx.getSource().getPlayerOrException())))))
                 .then(Commands.literal("lootcheck")
                         .requires(s -> s.hasPermission(2))
                         .executes(ctx -> lootCheck(ctx.getSource())))
@@ -74,7 +126,7 @@ public final class EmiProgresionCommand {
                 .withStyle(ChatFormatting.GREEN), false);
         source.sendSuccess(() -> Component.literal("Gimnasios naturales: permitidos en el mundo normal, fuera de la campaña oficial.")
                 .withStyle(ChatFormatting.YELLOW), false);
-        source.sendSuccess(() -> Component.literal("Historia oficial: Pueblo Paleta → Ciudad Verde → Bosque Verde → Brock.")
+        source.sendSuccess(() -> Component.literal("Historia oficial completa: Pueblo Paleta → 8 gimnasios → Alto Mando → Campeón.")
                 .withStyle(ChatFormatting.LIGHT_PURPLE), false);
         return 1;
     }
@@ -202,11 +254,7 @@ public final class EmiProgresionCommand {
     }
 
     private static int storySetup(CommandSourceStack source) {
-        StoryService.SetupResult result = StoryService.setupNpcs(source.getServer());
-        source.sendSuccess(() -> Component.literal("NPCs de historia: " + result.spawned() + "/" + result.expected()
-                        + " • " + result.message())
-                .withStyle(result.spawned() == result.expected() ? ChatFormatting.GREEN : ChatFormatting.RED), true);
-        return result.spawned() == result.expected() ? 1 : 0;
+        return placementSetup(source);
     }
 
     private static int storyReset(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
@@ -241,6 +289,83 @@ public final class EmiProgresionCommand {
         source.sendSuccess(() -> Component.literal("Anclaje " + anchor + " guardado en " + x + " " + y + " " + z
                         + ". Ejecuta /emiprogresion story setup.")
                 .withStyle(ChatFormatting.GREEN), true);
+        return 1;
+    }
+
+    private static int adminMode(CommandSourceStack source, boolean enabled) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        StoryPlacementService.setAdminMode(player, enabled);
+        source.sendSuccess(() -> Component.literal("Modo de montaje " + (enabled ? "ACTIVADO" : "DESACTIVADO")
+                        + (enabled ? ". Puedes atravesar entradas bloqueadas y colocar elementos." : "."))
+                .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.YELLOW), false);
+        return 1;
+    }
+
+    private static int adminStatus(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        boolean enabled = StoryPlacementService.isAdminMode(source.getPlayerOrException());
+        source.sendSuccess(() -> Component.literal("Modo de montaje: " + (enabled ? "ACTIVADO" : "DESACTIVADO"))
+                .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.GRAY), false);
+        return enabled ? 1 : 0;
+    }
+
+    private static int placement(CommandSourceStack source, StoryPlacementService.PlacementResult result) {
+        if (!result.success()) {
+            source.sendFailure(Component.literal(result.message()));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("✓ " + result.message()).withStyle(ChatFormatting.GREEN), true);
+        return 1;
+    }
+
+    private static int placementSetup(CommandSourceStack source) {
+        StoryPlacementService.SetupResult result = StoryPlacementService.setupPlacedEntities(source.getServer());
+        boolean ok = result.prepared() == result.expected();
+        EmiProgresionConfig.get().storyNpcSetupComplete = ok;
+        EmiProgresionConfig.save();
+        source.sendSuccess(() -> Component.literal("Elementos reconstruidos: " + result.prepared() + "/" + result.expected()
+                        + (result.failures().isEmpty() ? "" : " • Fallaron: " + String.join(", ", result.failures())))
+                .withStyle(ok ? ChatFormatting.GREEN : ChatFormatting.RED), true);
+        return ok ? 1 : 0;
+    }
+
+    private static int placementValidate(CommandSourceStack source) {
+        StoryPlacementService.Validation result = StoryPlacementService.validate(source.getServer());
+        source.sendSuccess(() -> Component.literal("Montaje de Kanto: " + result.placed() + " elementos colocados.")
+                .withStyle(ChatFormatting.AQUA), false);
+        validationLine(source, result.invalidTrainers().isEmpty(), result.invalidTrainers().isEmpty()
+                ? "Todos los modelos/equipos colocados existen en RCT"
+                : "IDs de RCT inválidos: " + String.join(", ", result.invalidTrainers()));
+        validationLine(source, result.missing().isEmpty(), result.missing().isEmpty()
+                ? "Catálogo principal completamente colocado"
+                : "Pendientes: " + result.missing().size());
+        if (!result.missing().isEmpty()) {
+            source.sendSuccess(() -> Component.literal("Primeros pendientes: "
+                            + String.join(", ", result.missing().stream().limit(15).toList()))
+                    .withStyle(ChatFormatting.YELLOW), false);
+        }
+        return result.invalidTrainers().isEmpty() ? 1 : 0;
+    }
+
+    private static int placementList(CommandSourceStack source) {
+        source.sendSuccess(() -> Component.literal("Colocados: " + StoryPlacementService.all().size())
+                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), false);
+        StoryPlacementService.all().stream().limit(40).forEach(entry -> source.sendSuccess(() ->
+                Component.literal("• " + entry.id + " — " + entry.displayName + " @ " + entry.x + " " + entry.y + " " + entry.z)
+                        .withStyle(ChatFormatting.GRAY), false));
+        if (StoryPlacementService.all().size() > 40) source.sendSuccess(() ->
+                Component.literal("… y " + (StoryPlacementService.all().size() - 40) + " más.").withStyle(ChatFormatting.GRAY), false);
+        return StoryPlacementService.all().size();
+    }
+
+    private static int catalogue(CommandSourceStack source) {
+        source.sendSuccess(() -> Component.literal("NPCs: " + KantoStoryCatalog.npcs().stream().map(KantoStoryCatalog.NpcDefinition::id).toList())
+                .withStyle(ChatFormatting.YELLOW), false);
+        source.sendSuccess(() -> Component.literal("Zonas de entrenadores: " + KantoStoryCatalog.routeNames())
+                .withStyle(ChatFormatting.GREEN), false);
+        source.sendSuccess(() -> Component.literal("Jefes: " + KantoStoryCatalog.bosses().stream().map(KantoStoryCatalog.BossDefinition::id).toList())
+                .withStyle(ChatFormatting.LIGHT_PURPLE), false);
+        source.sendSuccess(() -> Component.literal("Usa: colocar gimnasio <1-8> entrenador|lider|entrada; alto_mando <1-4>; campeon.")
+                .withStyle(ChatFormatting.AQUA), false);
         return 1;
     }
 

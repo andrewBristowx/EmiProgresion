@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.0-alpha.6
+
+- Adds the complete Kanto story from Oak to Champion Blue with persistent,
+  per-player stages and eight official badge checks.
+- Adds coordinate-free operator placement commands for NPCs, route and gym
+  trainers, leaders, gates, bosses, Elite Four members and the Champion.
+- Preserves the original RCT/Cobbleverse teams and verifies 142 selected trainer
+  IDs against the installed RCT and Cobbleverse data.
+- Avoids repeated generic trainer skins; Giovanni intentionally keeps his own
+  identity across Celadon, Silph and the Viridian Gym.
+- Adds stationary placement enforcement and a proven staging fallback so RCT
+  trainers cannot spawn underground, on trees or drift/fly away.
+- Adds bottom-screen visual-novel dialogue with portraits, choices and safe
+  close/skip behavior.
+- Adds blue reward PokéStops and distinct purple/gold fast-travel terminals with
+  per-player discovery and cooldowns.
+- Adds persistent placement data, move/remove/undo/rebuild commands and a full
+  catalogue validator.
+
 ## 0.1.0-alpha.5.4
 
 - Removes the abandoned RCT trainer entities at `0,64,1250` by entity type instead

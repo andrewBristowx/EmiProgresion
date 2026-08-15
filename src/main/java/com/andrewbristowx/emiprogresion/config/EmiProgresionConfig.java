@@ -13,7 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class EmiProgresionConfig {
-    private static final int CURRENT_CONFIG_VERSION = 7;
+    private static final int CURRENT_CONFIG_VERSION = 8;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("emiprogresion.json");
     private static EmiProgresionConfig INSTANCE = new EmiProgresionConfig();
@@ -56,6 +56,7 @@ public final class EmiProgresionConfig {
     /** Alpha.4 story anchors for Wild Kanto 1-00-02. They can be corrected in-game with setanchor. */
     public boolean storyEnabled = true;
     public boolean storyGuideEnabled = true;
+    public int pokestopCooldownMinutes = 30;
     public boolean storyNpcSetupComplete = false;
     public int oakX = 154;
     public int oakY = 78;
@@ -148,6 +149,7 @@ public final class EmiProgresionConfig {
                 // Force the corrected entity-type cleanup once after upgrading.
                 storyNpcSetupComplete = false;
             }
+            if (configVersion < 8) storyNpcSetupComplete = false;
             configVersion = CURRENT_CONFIG_VERSION;
         }
 
@@ -155,6 +157,7 @@ public final class EmiProgresionConfig {
         housingRadius = clamp(housingRadius, protectedSpawnRadius, 4000);
         kantoSpawnY = clamp(kantoSpawnY, -62, 317);
         kantoWorldBorderDiameter = clamp(kantoWorldBorderDiameter, 1000, 30000);
+        pokestopCooldownMinutes = clamp(pokestopCooldownMinutes, 1, 1440);
 
         if (kantoGeneratedMinX > kantoGeneratedMaxX) {
             int value = kantoGeneratedMinX;
