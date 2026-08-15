@@ -18,6 +18,8 @@
   per-player discovery and cooldowns.
 - Adds persistent placement data, move/remove/undo/rebuild commands and a full
   catalogue validator.
+- Removes the obsolete alpha.5 tagged NPCs on first upgrade without importing
+  their known-bad guessed coordinates; the map and player progress are preserved.
 
 ## 0.1.0-alpha.5.4
 

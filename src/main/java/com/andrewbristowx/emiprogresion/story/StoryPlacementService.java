@@ -1,6 +1,5 @@
 package com.andrewbristowx.emiprogresion.story;
 
-import com.andrewbristowx.emiprogresion.config.EmiProgresionConfig;
 import com.andrewbristowx.emiprogresion.region.AdventureRegionService;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -23,7 +22,6 @@ public final class StoryPlacementService {
 
     public static void onServerStarted(MinecraftServer server) {
         store = new StoryPlacementStore(server);
-        migrateLegacyAnchors();
     }
 
     public static void onServerStopping() {
@@ -312,30 +310,6 @@ public final class StoryPlacementService {
     private static String readable(String value) {
         String text = value.replace('_', ' ');
         return text.isEmpty() ? text : text.substring(0, 1).toUpperCase(Locale.ROOT) + text.substring(1);
-    }
-
-    private static void migrateLegacyAnchors() {
-        if (!store().all().isEmpty()) return;
-        EmiProgresionConfig config = EmiProgresionConfig.get();
-        String world = config.kantoWorld;
-        store().put(new StoryPlacementStore.Placement("npc:oak", "npc", "oak", "professor_oak_00c8",
-                "Profesor Oak", world, config.oakX, config.oakY, config.oakZ, 180f));
-        store().put(new StoryPlacementStore.Placement("npc:vecino_paleta", "npc", "vecino_paleta", "youngster_lancere_0025",
-                "Vecino de Pueblo Paleta", world, config.palletGuideX, config.palletGuideY, config.palletGuideZ, 0f));
-        store().put(new StoryPlacementStore.Placement("npc:dependiente_verde", "npc", "dependiente_verde", "gentleman_arthur_01a6",
-                "Dependiente del Poké Mart", world, config.viridianCourierX, config.viridianCourierY, config.viridianCourierZ, 180f));
-        store().put(new StoryPlacementStore.Placement("gate:gym:8", "gate", "gym:8", "",
-                "Entrada del gimnasio de Giovanni", world, config.giovanniGateX, config.giovanniGateY, config.giovanniGateZ, 0f));
-        store().put(new StoryPlacementStore.Placement("trainer:bosque_verde_1", "trainer", "bosque_verde_1", "bug_catcher_01ec",
-                "Entrenador de Bosque Verde", world, 78, 76, 12, 0f));
-        store().put(new StoryPlacementStore.Placement("trainer:bosque_verde_2", "trainer", "bosque_verde_2", "bug_catcher_anthony_0213",
-                "Entrenador de Bosque Verde", world, -61, 91, -704, 0f));
-        store().put(new StoryPlacementStore.Placement("trainer:bosque_verde_3", "trainer", "bosque_verde_3", "bug_catcher_rick_0066",
-                "Entrenador de Bosque Verde", world, -14, 102, -889, 180f));
-        store().put(new StoryPlacementStore.Placement("trainer:bosque_verde_4", "trainer", "bosque_verde_4", "bug_catcher_doug_0067",
-                "Entrenador de Bosque Verde", world, 37, 112, -1080, 0f));
-        store().put(new StoryPlacementStore.Placement("leader:1", "leader", "1", "kanto_brock",
-                "Brock", world, config.brockX, config.brockY, config.brockZ, 180f));
     }
 
     public record PlacementResult(boolean success, String message, StoryPlacementStore.Placement placement) {
