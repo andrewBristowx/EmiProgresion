@@ -1,5 +1,66 @@
 # Changelog
 
+## 0.1.0-alpha.6
+
+- Adds the complete Kanto story from Oak to Champion Blue with persistent,
+  per-player stages and eight official badge checks.
+- Adds coordinate-free operator placement commands for NPCs, route and gym
+  trainers, leaders, gates, bosses, Elite Four members and the Champion.
+- Preserves the original RCT/Cobbleverse teams and verifies 142 selected trainer
+  IDs against the installed RCT and Cobbleverse data.
+- Avoids repeated generic trainer skins; Giovanni intentionally keeps his own
+  identity across Celadon, Silph and the Viridian Gym.
+- Adds stationary placement enforcement and a proven staging fallback so RCT
+  trainers cannot spawn underground, on trees or drift/fly away.
+- Adds bottom-screen visual-novel dialogue with portraits, choices and safe
+  close/skip behavior.
+- Adds blue reward PokéStops and distinct purple/gold fast-travel terminals with
+  per-player discovery and cooldowns.
+- Adds persistent placement data, move/remove/undo/rebuild commands and a full
+  catalogue validator.
+- Removes the obsolete alpha.5 tagged NPCs on first upgrade without importing
+  their known-bad guessed coordinates; the map and player progress are preserved.
+
+## 0.1.0-alpha.5.4
+
+- Removes the abandoned RCT trainer entities at `0,64,1250` by entity type instead
+  of trainer ID. RCT changes their invalid early-load ID to `default`, which made
+  the alpha.5.3 cleanup miss them while they still reserved persistent Brock.
+- Explicitly unregisters each abandoned entity from RCT's persistent trainer
+  store before discarding it.
+- Creates Brock temporarily at the legacy anchor where RCT previously accepted
+  him, moves him immediately to the Pewter Gym, and only then enables persistence
+  so RCT records the correct gym chunk.
+- Forces one corrected story NPC rebuild after upgrading from alpha.5.3.
+
+## 0.1.0-alpha.5.3
+
+- Removes and unregisters persistent `kanto_brock` entities left at the obsolete
+  `0,64,1250` prototype anchor before creating the real gym leader.
+- Falls back to directly summoning an RCT trainer entity with `TrainerId` and
+  RCT persistence when `summon_persistent` completes without producing an entity.
+- Logs any unexpected new entity type and trainer ID if both RCT summon paths fail.
+
+## 0.1.0-alpha.5.2
+
+- Delays automatic story NPC creation until RCT confirms that `kanto_brock` is
+  registered, avoiding invalid placeholder trainers during server startup.
+- Migrates the legacy Brock anchor `0,64,1250` to the verified Wild Kanto gym
+  anchor `22,127,-1294`.
+- Forces one clean NPC rebuild after upgrading from alpha.5.1 so incorrect or
+  prematurely created trainers are replaced automatically.
+
+## 0.1.0-alpha.5.1
+
+- Fixes story setup reporting `0/8` when RCT did not preserve the NBT story tag.
+- Summons persistent RCT trainers with the documented minimal command, then applies
+  story tags, position, rotation, invulnerability and NoAI directly on the entity.
+- Detects the new trainer by its RCT trainer ID instead of assuming its tag survived
+  the summon command.
+- Removes untagged trainers left at story anchors by the alpha.5 setup attempt.
+- Reports the exact failed trainer IDs and coordinates in chat and adds detailed
+  server-log diagnostics.
+
 ## 0.1.0-alpha.5
 
 - Automatically downloads the versioned cleaned Wild Kanto archive on the first

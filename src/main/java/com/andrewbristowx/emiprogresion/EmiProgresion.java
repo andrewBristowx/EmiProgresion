@@ -6,6 +6,7 @@ import com.andrewbristowx.emiprogresion.network.StoryNetworking;
 import com.andrewbristowx.emiprogresion.region.AdventureRegionService;
 import com.andrewbristowx.emiprogresion.region.KantoMapInstaller;
 import com.andrewbristowx.emiprogresion.story.StoryService;
+import com.andrewbristowx.emiprogresion.story.TravelStopBlocks;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -20,6 +21,7 @@ public final class EmiProgresion implements ModInitializer {
     @Override
     public void onInitialize() {
         EmiProgresionConfig.load();
+        TravelStopBlocks.register();
         StoryNetworking.initialize();
         StoryService.initializeEvents();
 
@@ -30,14 +32,6 @@ public final class EmiProgresion implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             AdventureRegionService.onServerStarted(server);
             StoryService.onServerStarted(server);
-            if (EmiProgresionConfig.get().storyEnabled
-                    && !EmiProgresionConfig.get().storyNpcSetupComplete) {
-                var kanto = AdventureRegionService.getLevel(server, EmiProgresionConfig.get().kantoWorld);
-                if (kanto != null && AdventureRegionService.hasWildKantoSignature(kanto)) {
-                    StoryService.SetupResult result = StoryService.setupNpcs(server);
-                    LOGGER.info("Automatic Kanto NPC setup: {}/{} - {}", result.spawned(), result.expected(), result.message());
-                }
-            }
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> StoryService.onServerStopping());
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -45,6 +39,6 @@ public final class EmiProgresion implements ModInitializer {
             StoryService.tick(server);
         });
 
-        LOGGER.info("EmiProgresion 0.1.0-alpha.5 enabled: automatic Wild Kanto installation and story through Brock.");
+        LOGGER.info("EmiProgresion full Kanto placement catalogue enabled.");
     }
 }

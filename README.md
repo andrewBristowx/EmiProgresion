@@ -9,6 +9,86 @@ Target stack:
 - Cobblemon 1.7.3
 - Cobbleverse datapacks v31 / RCT v20
 
+## 0.1.0-alpha.6 — complete placeable Kanto campaign
+
+Alpha.6 contains the complete official campaign from Professor Oak through the
+Champion. Nothing in the catalogue guesses a map coordinate: an operator stands
+at the exact desired spot and places the authored NPC, trainer, leader, gate,
+PokéStop or travel terminal. Placements are saved in
+`world/data/emiprogresion/kanto_placements.json` and rebuilt after restarts.
+
+The progression is per player and includes all eight gyms, Bill, S.S. Anne,
+Team Rocket in Celadon and Silph, Pokémon Tower, Cinnabar Mansion, Victory Road,
+the Elite Four and Champion Blue. Leaders and trainers use their original RCT
+teams; generic character IDs are unique so the small cast does not repeat skins.
+
+Start placement mode and inspect the available authored IDs:
+
+```text
+/emiprogresion admin on
+/emiprogresion montaje catalogo
+/emiprogresion colocar npc oak
+/emiprogresion colocar entrenador ruta_1
+/emiprogresion colocar gimnasio 1 entrenador
+/emiprogresion colocar gimnasio 1 lider
+/emiprogresion colocar gimnasio 1 entrada
+/emiprogresion colocar jefe rival_paleta
+/emiprogresion colocar alto_mando 1
+/emiprogresion colocar campeon
+/emiprogresion colocar pokeparada
+/emiprogresion colocar terminal Pueblo Paleta
+```
+
+Repeat `colocar entrenador <zona>` or `colocar gimnasio <n> entrenador`;
+each call automatically selects the next unused authored opponent. The nearest
+element can be moved or removed without editing coordinates:
+
+```text
+/emiprogresion montaje mover_cercano
+/emiprogresion montaje eliminar_cercano
+/emiprogresion montaje deshacer
+/emiprogresion montaje reconstruir
+/emiprogresion montaje validar
+```
+
+Gym gates block story players until the required objective is complete, while
+operators with placement mode enabled may walk through. Blue PokéStops grant
+personal supplies on a configurable cooldown. Purple/gold terminals are visually
+different, become destinations when discovered and allow travel only between
+activated terminals.
+
+Dialogue is now a compact visual-novel strip at the bottom of the screen: the
+world stays visible, the trainer portrait appears beside the text, and skipping
+stops at the final important choice. Selection no longer emits a second close
+action, preventing conversations from remaining stuck.
+
+## 0.1.0-alpha.5.4 — invalid legacy Brock cleanup
+
+Alpha.5.4 removes only RCT trainer entities at the abandoned `0,64,1250`
+prototype anchor, even when RCT has replaced their invalid early-load trainer ID
+with `default`, and unregisters their saved RCT tickets. Brock is then staged at
+that known-compatible anchor, moved immediately into the Wild Kanto Pewter Gym,
+and made persistent only after reaching the correct gym chunk.
+
+## 0.1.0-alpha.5.3 — legacy Brock cleanup
+
+Alpha.5.3 removes persistent Brock entities left at the obsolete prototype
+anchor before placing the gym leader. It also uses a direct RCT entity summon as
+a fallback when RCT's `summon_persistent` command produces no entity.
+
+## 0.1.0-alpha.5.2 — RCT startup and Brock anchor hotfix
+
+Alpha.5.2 waits for RCT's trainer registry before creating the story NPCs. It
+also migrates the obsolete Brock anchor `0,64,1250` to the Wild Kanto Pewter Gym
+at `22,127,-1294` and automatically performs one clean rebuild after upgrading.
+
+## 0.1.0-alpha.5.1 — RCT story NPC hotfix
+
+Alpha.5.1 fixes `NPCs de historia: 0/8`. RCT trainers are now located by their
+trainer ID after summoning and EmiProgresion applies its story tag and stationary
+properties directly. Running `/emiprogresion story setup` also removes any
+untagged duplicate left at the eight configured anchors by alpha.5.
+
 ## 0.1.0-alpha.5 — automatic Wild Kanto server installation
 
 Alpha.5 removes the need to copy map folders by hand. On the first dedicated-

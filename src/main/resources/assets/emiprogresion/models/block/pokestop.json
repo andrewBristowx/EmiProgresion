@@ -1,0 +1,17 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "blue": "minecraft:block/cyan_concrete",
+    "light": "minecraft:block/sea_lantern"
+  },
+  "elements": [
+    { "from": [2, 0, 2], "to": [14, 2, 14], "faces": {
+      "down": {"texture":"#blue"}, "up": {"texture":"#light"}, "north": {"texture":"#blue"},
+      "south": {"texture":"#blue"}, "west": {"texture":"#blue"}, "east": {"texture":"#blue"}
+    }},
+    { "from": [7, 2, 7], "to": [9, 16, 9], "faces": {
+      "down": {"texture":"#blue"}, "up": {"texture":"#light"}, "north": {"texture":"#blue"},
+      "south": {"texture":"#blue"}, "west": {"texture":"#blue"}, "east": {"texture":"#blue"}
+    }}
+  ]
+}

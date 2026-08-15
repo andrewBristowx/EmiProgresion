@@ -1,0 +1,22 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "purple": "minecraft:block/purple_concrete",
+    "gold": "minecraft:block/gold_block",
+    "light": "minecraft:block/sea_lantern"
+  },
+  "elements": [
+    { "from": [1, 0, 1], "to": [15, 2, 15], "faces": {
+      "down": {"texture":"#purple"}, "up": {"texture":"#gold"}, "north": {"texture":"#purple"},
+      "south": {"texture":"#purple"}, "west": {"texture":"#purple"}, "east": {"texture":"#purple"}
+    }},
+    { "from": [6.5, 2, 6.5], "to": [9.5, 16, 9.5], "faces": {
+      "down": {"texture":"#purple"}, "up": {"texture":"#light"}, "north": {"texture":"#purple"},
+      "south": {"texture":"#purple"}, "west": {"texture":"#purple"}, "east": {"texture":"#purple"}
+    }},
+    { "from": [4, 13, 4], "to": [12, 15, 12], "faces": {
+      "down": {"texture":"#gold"}, "up": {"texture":"#gold"}, "north": {"texture":"#gold"},
+      "south": {"texture":"#gold"}, "west": {"texture":"#gold"}, "east": {"texture":"#gold"}
+    }}
+  ]
+}
